@@ -77,6 +77,48 @@ python prover/evaluate.py \
 # Expected Final Pass@1 value should be around 0.24
 ```
 
+## 6. Logging
+ReProver uses `loguru` to capture detailed execution traces, search steps, and debugging information.
+
+### Log Locations
+- **Console:** By default, `INFO` level logs are printed to `stderr`.
+- **File:** Detailed traces (including `DEBUG` level) are saved to the `logs/` directory by default.
+  - When running `prover/evaluate.py`, a new log file is created for each run: `logs/trace_<YYYYMMDD_HHMMSS>.log`.
+  - If the `logs/` directory does not exist, it will be created automatically.
+  - You can override the log file path by setting the `REPROVER_LOG_FILE` environment variable:
+    ```bash
+    export REPROVER_LOG_FILE="my_debug_file.log"
+    ```
+
+### Log Format
+Log entries follow this format:
+`YYYY-MM-DD HH:mm:ss | PID:XXXX | LEVEL | Message`
+
+### Tactic Trace Information
+For every step in the proof search, the log captures high-resolution data about the interaction between the model and the Lean environment. This is especially useful for understanding why a proof attempt failed.
+
+Each step in the trace includes:
+- **THEOREM**: The full name of the theorem being processed.
+- **STATE**: The current goal state (tactic state) before a tactic is applied.
+- **TACTIC**: The specific tactic suggested by the model.
+- **RESULT**: The outcome returned by Lean, including the type of response:
+  - `TacticState`: Success, showing the new resulting goal state.
+  - `LeanError`: Failure, including the specific error message from Lean (e.g., "unknown identifier", "tactic failed", etc.).
+  - `ProofFinished`: The tactic successfully closed the goal.
+
+Example of a trace entry for a failed tactic:
+```text
+=== STEP ===
+[THEOREM]: my_theorem
+[STATE]:
+n : ℕ
+⊢ n + 0 = n
+[TACTIC]: induction m
+[RESULT (LeanError)]:
+unknown identifier 'm'
+============
+```
+
 ### Troubleshooting
 * **`lean` not found:** Ensure `source $HOME/.elan/env` is in your `.bashrc` or `.zshrc`.
 * **Rate Limit Errors:** Verify `echo $GITHUB_ACCESS_TOKEN` is set correctly.
