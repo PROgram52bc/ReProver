@@ -36,7 +36,6 @@ from prover.tactic_generator import (
     VllmGenerator,
 )
 
-
 @dataclass(frozen=True)
 class SearchResult:
     """The result of attempting to prove a theorem."""
@@ -243,6 +242,36 @@ class BestFirstSearchProver:
         t0 = time.time()
         response = self.dojo.run_tac(node.state, tactic)
 
+		# --- LOGGING HERE ---
+        # 1. Identify the outcome type (Success, Error, or New State)
+        outcome_type = type(response).__name__
+        outcome_msg = "Unknown"
+
+        if hasattr(response, 'pp'):
+            # It's a TacticState (partial progress)
+            outcome_msg = response.pp
+        elif hasattr(response, 'error'):
+            # It's a LeanError (tactic failed)
+            outcome_msg = response.error
+        else:
+            # It's ProofFinished or something else
+            outcome_msg = str(response)
+
+        # 2. Try to find the theorem name (it's usually in self.name or self.theorem.name)
+        # We use getattr to be safe in case the attribute name differs
+        thm_name = getattr(self.theorem, 'full_name', "Unknown Theorem") 
+
+        # 3. Log everything clearly
+        logger.debug(
+            f"\n=== STEP ==="
+            f"\n[THEOREM]: {thm_name}"
+            f"\n[STATE]:\n{node.state.pp}"
+            f"\n[TACTIC]: {tactic}"
+            f"\n[RESULT ({outcome_type})]:\n{outcome_msg}"
+            f"\n============"
+        )
+        # ---------------------------
+
         elapsed = time.time() - t0
         self.environment_time += elapsed
 
@@ -268,6 +297,7 @@ class BestFirstSearchProver:
 
             if result_node.status == Status.OPEN:  # Don't search proved/failed nodes
                 priority_queue.put_nowait((-result_node.priority, result_node))
+
 
         # Record the new node and add it to the search queue.
         self.nodes[response] = result_node

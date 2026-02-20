@@ -437,10 +437,21 @@ def set_logger(verbose: bool) -> None:
     be called only once in the main function
     """
     logger.remove()
+
     if verbose:
         logger.add(sys.stderr, level="DEBUG")
     else:
         logger.add(sys.stderr, level="INFO")
+
+    log_file = os.getenv("REPROVER_LOG_FILE", "debug_trace.log")
+    logger.add(
+            log_file,
+            level="DEBUG",        # Capture everything in the file
+            enqueue=True,         # Safe for multiprocessing
+            mode="w",             # 'w' overwrites each run. Use 'a' to append.
+            # Add {process} to the format so you know which worker is talking
+            format="{time:YYYY-MM-DD HH:mm:ss} | PID:{process} | {level} | {message}"
+        )
 
 
 def cpu_checkpointing_enabled(pl_module) -> bool:

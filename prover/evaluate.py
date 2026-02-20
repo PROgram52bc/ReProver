@@ -2,6 +2,7 @@
 """
 
 import os
+from datetime import datetime
 
 os.environ["RAY_DEDUP_LOGS"] = "0"
 import uuid
@@ -173,6 +174,12 @@ def evaluate(
 
 
 def main() -> None:
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    os.environ["REPROVER_LOG_FILE"] = f"logs/trace_{timestamp}.log"
+    # Ensure the directory exists
+    os.makedirs("logs", exist_ok=True)
+
     parser = argparse.ArgumentParser(
         description="Script for evaluating the prover on theorems extracted by LeanDojo."
     )
