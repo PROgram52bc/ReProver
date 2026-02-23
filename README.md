@@ -77,7 +77,31 @@ python prover/evaluate.py \
 # Expected Final Pass@1 value should be around 0.24
 ```
 
-## 6. Logging
+## 6. Retrieval-Augmented Generation (RAG)
+To use retrieval-augmented generation, you first need to index the retrieval corpus:
+
+```bash
+python retrieval/index.py \
+    --ckpt_path kaiyuy/leandojo-lean4-retriever-byt5-small \
+    --corpus-path data/leandojo_benchmark_4/corpus.jsonl \
+    --output-path data/leandojo_benchmark_4/indexed_corpus.pkl \
+    --batch-size 16
+```
+> Note: You can reduce the `--batch-size` to reduce GPU memory required if needed.
+
+After indexing is completed, you can run the evaluation with retrieval:
+
+```bash
+python prover/evaluate.py \
+    --data-path data/leandojo_benchmark_4/random/ \
+    --gen-ckpt-path kaiyuy/leandojo-lean4-tacgen-byt5-small \
+    --ret-ckpt-path kaiyuy/leandojo-lean4-retriever-byt5-small \
+    --indexed-corpus-path data/leandojo_benchmark_4/indexed_corpus.pkl \
+    --num-sampled-tactics 10 \
+    --num-theorems 10
+```
+
+## 7. Logging
 ReProver uses `loguru` to capture detailed execution traces, search steps, and debugging information.
 
 ### Log Locations
