@@ -94,14 +94,24 @@ After indexing is completed, you can run the evaluation with retrieval:
 ```bash
 python prover/evaluate.py \
     --data-path data/leandojo_benchmark_4/random/ \
-    --gen-ckpt-path kaiyuy/leandojo-lean4-tacgen-byt5-small \
-    --ret-ckpt-path kaiyuy/leandojo-lean4-retriever-byt5-small \
+    --gen_ckpt_path kaiyuy/leandojo-lean4-tacgen-byt5-small \
+    --ret_ckpt_path kaiyuy/leandojo-lean4-retriever-byt5-small \
     --indexed-corpus-path data/leandojo_benchmark_4/indexed_corpus.pkl \
-    --num-sampled-tactics 10 \
-    --num-theorems 10
+    --num-sampled-tactics 5 \
+    --num-theorems 50
 ```
+# Expected Final Pass@1 value should be around 0.18
 
-## 7. Logging
+## 7. Summary of Results
+
+| Configuration | Num Tactics | Num Theorems | Pass@1 |
+|---------------|-------------|--------------|--------|
+| Non-retrieval | 5           | 50           | 0.24   |
+| Retrieval     | 5           | 50           | 0.18   |
+| Non-retrieval | 64          | 200          | 0.3990 |
+| Retrieval     | 64          | 200          | 0.3586 |
+
+## 8. Logging
 ReProver uses `loguru` to capture detailed execution traces, search steps, and debugging information.
 
 ### Log Locations
