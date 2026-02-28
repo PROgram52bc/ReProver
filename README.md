@@ -94,20 +94,20 @@ After indexing is completed, you can run the evaluation with retrieval:
 ```bash
 python prover/evaluate.py \
     --data-path data/leandojo_benchmark_4/random/ \
-    --gen_ckpt_path kaiyuy/leandojo-lean4-tacgen-byt5-small \
+    --gen_ckpt_path kaiyuy/leandojo-lean4-retriever-tacgen-byt5-small \
     --ret_ckpt_path kaiyuy/leandojo-lean4-retriever-byt5-small \
     --indexed-corpus-path data/leandojo_benchmark_4/indexed_corpus.pkl \
     --num-sampled-tactics 5 \
     --num-theorems 50
 ```
-# Expected Final Pass@1 value should be around 0.18
+# Expected Final Pass@1 value should be around 0.34
 
 ## 7. Summary of Results
 
 | Configuration | Num Tactics | Num Theorems | Pass@1 |
 |---------------|-------------|--------------|--------|
 | Non-retrieval | 5           | 50           | 0.24   |
-| Retrieval     | 5           | 50           | 0.18   |
+| Retrieval     | 5           | 50           | 0.34   |
 | Non-retrieval | 64          | 200          | 0.3990 |
 | Retrieval     | 64          | 200          | 0.3586 |
 
