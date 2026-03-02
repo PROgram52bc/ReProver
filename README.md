@@ -109,7 +109,9 @@ python prover/evaluate.py \
 | Non-retrieval | 5           | 50           | 0.24   |
 | Retrieval     | 5           | 50           | 0.34   |
 | Non-retrieval | 64          | 200          | 0.3990 |
-| Retrieval     | 64          | 200          | 0.3586 |
+| Retrieval     | 64          | 200          | 0.4394 |
+| Non-retrieval | 5           | 200          | 0.2727 |
+| Retrieval     | 5           | 200          | 0.3384 |
 
 ## 8. Logging
 ReProver uses `loguru` to capture detailed execution traces, search steps, and debugging information.
