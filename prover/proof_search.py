@@ -335,7 +335,7 @@ class BestFirstSearchProver:
 
 @ray.remote
 class ProverActor:
-    """Ray actor for running an instance of `BestFirstSearchProver`."""
+    """Ray actor for running an instance of a prover."""
 
     def __init__(
         self,
@@ -344,14 +344,36 @@ class ProverActor:
         max_expansions: Optional[int],
         num_sampled_tactics: int,
         debug: bool,
+        algorithm: str = "best",
     ) -> None:
-        self.prover = BestFirstSearchProver(
-            tac_gen,
-            timeout,
-            max_expansions,
-            num_sampled_tactics,
-            debug,
-        )
+        if algorithm == "best":
+            self.prover = BestFirstSearchProver(
+                tac_gen,
+                timeout,
+                max_expansions,
+                num_sampled_tactics,
+                debug,
+            )
+        elif algorithm == "bfs":
+            from prover.bfs_search import BreadthFirstSearchProver
+            self.prover = BreadthFirstSearchProver(
+                tac_gen,
+                timeout,
+                max_expansions,
+                num_sampled_tactics,
+                debug,
+            )
+        elif algorithm == "dfs":
+            from prover.dfs_search import DepthFirstSearchProver
+            self.prover = DepthFirstSearchProver(
+                tac_gen,
+                timeout,
+                max_expansions,
+                num_sampled_tactics,
+                debug,
+            )
+        else:
+            raise ValueError(f"Unknown algorithm: {algorithm}")
 
     def search(
         self, repo: LeanGitRepo, thm: Theorem, pos: Pos
@@ -420,6 +442,7 @@ class DistributedProver:
         max_expansions: Optional[int],
         num_sampled_tactics: int,
         debug: Optional[bool] = False,
+        algorithm: str = "best",
     ) -> None:
         if gen_ckpt_path is None:
             assert tactic and not indexed_corpus_path
@@ -454,9 +477,22 @@ class DistributedProver:
         self.distributed = num_workers > 1
         if not self.distributed:
             assert num_gpus <= 1
-            self.prover = BestFirstSearchProver(
-                tac_gen, timeout, max_expansions, num_sampled_tactics, debug
-            )
+            if algorithm == "best":
+                self.prover = BestFirstSearchProver(
+                    tac_gen, timeout, max_expansions, num_sampled_tactics, debug
+                )
+            elif algorithm == "bfs":
+                from prover.bfs_search import BreadthFirstSearchProver
+                self.prover = BreadthFirstSearchProver(
+                    tac_gen, timeout, max_expansions, num_sampled_tactics, debug
+                )
+            elif algorithm == "dfs":
+                from prover.dfs_search import DepthFirstSearchProver
+                self.prover = DepthFirstSearchProver(
+                    tac_gen, timeout, max_expansions, num_sampled_tactics, debug
+                )
+            else:
+                raise ValueError(f"Unknown algorithm: {algorithm}")
             return
 
         if num_gpus >= 1:
@@ -473,6 +509,7 @@ class DistributedProver:
                     max_expansions=max_expansions,
                     num_sampled_tactics=num_sampled_tactics,
                     debug=debug,
+                    algorithm=algorithm,
                 )
                 for _ in range(num_workers)
             ]
@@ -485,6 +522,7 @@ class DistributedProver:
                     max_expansions=max_expansions,
                     num_sampled_tactics=num_sampled_tactics,
                     debug=debug,
+                    algorithm=algorithm,
                 )
                 for _ in range(num_workers)
             ]

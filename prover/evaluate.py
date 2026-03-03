@@ -116,6 +116,7 @@ def evaluate(
     num_gpus: int = 0,
     save_results: bool = False,
     verbose: bool = False,
+    algorithm: str = "best",
 ) -> float:
     set_logger(verbose)
 
@@ -140,6 +141,7 @@ def evaluate(
         max_expansions=max_expansions,
         num_sampled_tactics=num_sampled_tactics,
         debug=verbose,
+        algorithm=algorithm,
     )
     results = prover.search_unordered(repo, theorems, positions)
 
@@ -246,6 +248,13 @@ def main() -> None:
     parser.add_argument(
         "--num-gpus", type=int, default=0, help="The number of GPUs for proof search."
     )
+    parser.add_argument(
+        "--algorithm",
+        type=str,
+        choices=["best", "bfs", "dfs"],
+        default="best",
+        help="The search algorithm to use.",
+    )
     parser.add_argument("--save-results", action="store_true")
     parser.add_argument(
         "--verbose", action="store_true", help="Set the logging level to DEBUG."
@@ -282,6 +291,7 @@ def main() -> None:
         args.num_gpus,
         args.save_results,
         args.verbose,
+        args.algorithm,
     )
 
     logger.info(f"Pass@1: {pass_1}")
