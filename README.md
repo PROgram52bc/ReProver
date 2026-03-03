@@ -104,14 +104,17 @@ python prover/evaluate.py \
 
 ## 7. Summary of Results
 
-| Configuration | Num Tactics | Num Theorems | Pass@1 |
-|---------------|-------------|--------------|--------|
-| Non-retrieval | 5           | 50           | 0.24   |
-| Retrieval     | 5           | 50           | 0.34   |
-| Non-retrieval | 64          | 200          | 0.3990 |
-| Retrieval     | 64          | 200          | 0.4394 |
-| Non-retrieval | 5           | 200          | 0.2727 |
-| Retrieval     | 5           | 200          | 0.3384 |
+| Algorithm | Configuration | Num Tactics | Num Theorems | Pass@1 |
+|-----------|---------------|-------------|--------------|--------|
+| BEST      | BEST-Non-retrieval | 5           | 50           | 0.24   |
+| BEST      | BEST-Retrieval     | 5           | 50           | 0.34   |
+| DFS       | DFS-retrieval      | 5           | 50           | 0.34   |
+| BFS       | BFS-retrieval      | 5           | 50           | 0.34   |
+| BEST      | BEST-Non-retrieval | 64          | 200          | 0.3990 |
+| BEST      | BEST-Non-retrieval | 128         | 200          | 0.4040404040 |
+| BEST      | BEST-Retrieval     | 64          | 200          | 0.4394 |
+| BEST      | BEST-Non-retrieval | 5           | 200          | 0.2727 |
+| BEST      | BEST-Retrieval     | 5           | 200          | 0.3384 |
 
 ## 8. Logging
 ReProver uses `loguru` to capture detailed execution traces, search steps, and debugging information.
