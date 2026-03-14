@@ -26,15 +26,43 @@ def _get_theorems(
     full_name: str,
     name_filter: str,
     num_theorems: int,
+    dataset: str = "leandojo",
+    repo_url: Optional[str] = None,
+    commit: Optional[str] = None,
 ) -> Tuple[LeanGitRepo, List[Theorem], List[Pos]]:
-    repo, theorems, positions = _get_theorems_from_files(
-        data_path,
-        split,
-        file_path,
-        full_name,
-        name_filter,
-        num_theorems,
-    )
+    if dataset == "leandojo":
+        repo, theorems, positions = _get_theorems_from_files(
+            data_path,
+            split,
+            file_path,
+            full_name,
+            name_filter,
+            num_theorems,
+        )
+    else:
+        if dataset == "minif2f":
+            repo_url = repo_url or "https://github.com/leanprover-community/mathlib4"
+            commit = commit or "master"
+        elif dataset == "veribench":
+            repo_url = repo_url or "https://github.com/shishir-h/VeriBench"
+            commit = commit or "main"
+        else:
+            assert repo_url is not None and commit is not None, "repo_url and commit must be provided for custom datasets."
+        
+        repo = LeanGitRepo(repo_url, commit)
+        data = json.load(open(os.path.join(data_path, f"{split}.json")))
+        theorems = []
+        positions = []
+        for t in data:
+            if file_path is not None and t["file_path"] != file_path:
+                continue
+            if full_name is not None and t["full_name"] != full_name:
+                continue
+            theorems.append(Theorem(repo, t["file_path"], t["full_name"]))
+            if "start" in t:
+                positions.append(Pos(*t["start"]))
+            else:
+                positions.append(Pos(1, 1))
 
     all_repos = {thm.repo for thm in theorems}
     for r in all_repos:
@@ -117,11 +145,14 @@ def evaluate(
     save_results: bool = False,
     verbose: bool = False,
     algorithm: str = "best",
+    dataset: str = "leandojo",
+    repo_url: Optional[str] = None,
+    commit: Optional[str] = None,
 ) -> float:
     set_logger(verbose)
 
     repo, theorems, positions = _get_theorems(
-        data_path, split, file_path, full_name, name_filter, num_theorems
+        data_path, split, file_path, full_name, name_filter, num_theorems, dataset, repo_url, commit
     )
 
     # Search for proofs using multiple concurrent provers.
@@ -255,6 +286,25 @@ def main() -> None:
         default="best",
         help="The search algorithm to use.",
     )
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        choices=["leandojo", "minif2f", "veribench"],
+        default="leandojo",
+        help="The dataset to evaluate on.",
+    )
+    parser.add_argument(
+        "--repo-url",
+        type=str,
+        default=None,
+        help="The URL of the repository (required for custom datasets).",
+    )
+    parser.add_argument(
+        "--commit",
+        type=str,
+        default=None,
+        help="The commit hash (required for custom datasets).",
+    )
     parser.add_argument("--save-results", action="store_true")
     parser.add_argument(
         "--verbose", action="store_true", help="Set the logging level to DEBUG."
@@ -292,6 +342,9 @@ def main() -> None:
         args.save_results,
         args.verbose,
         args.algorithm,
+        args.dataset,
+        args.repo_url,
+        args.commit,
     )
 
     logger.info(f"Pass@1: {pass_1}")
