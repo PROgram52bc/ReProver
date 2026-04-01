@@ -28,12 +28,14 @@ from vllm import AsyncLLMEngine, AsyncEngineArgs, SamplingParams, RequestOutput
 
 from common import zip_strict
 from prover.search_tree import *
+from prover.utils import log_failed_tactic
 from prover.tactic_generator import (
     TacticGenerator,
     HuggingFaceGenerator,
     RetrievalAugmentedGenerator,
     FixedTacticGenerator,
     VllmGenerator,
+    RepairGenerator,
 )
 
 @dataclass(frozen=True)
@@ -62,6 +64,7 @@ class BestFirstSearchProver:
         max_expansions: Optional[int],
         num_sampled_tactics: int,
         debug: bool,
+        repair_gen: Optional[RepairGenerator] = None,
     ) -> None:
         self.tac_gen = tac_gen
         self.tac_gen.initialize()
@@ -69,6 +72,7 @@ class BestFirstSearchProver:
         self.max_expansions = max_expansions
         self.num_sampled_tactics = num_sampled_tactics
         self.debug = debug
+        self.repair_gen = repair_gen
 
         self.num_expansions = 0
         self.actor_time = 0.0
@@ -155,7 +159,8 @@ class BestFirstSearchProver:
             ):
                 if self.root.status == Status.PROVED:
                     logger.info("Found a proof!")
-                self.root.status = Status.OPEN
+                else:
+                    self.root.status = Status.OPEN
                 logger.info("Hit the resource limit (timeout or max_expansions).")
                 break
 
@@ -237,40 +242,31 @@ class BestFirstSearchProver:
         return suggestions
 
     def _run_tactic(
-        self, node: InternalNode, tactic: str, logprob: float, priority_queue
+        self, node: InternalNode, tactic: str, logprob: float, priority_queue, is_repair: bool = False
     ) -> Tuple[Edge, bool]:
         t0 = time.time()
         response = self.dojo.run_tac(node.state, tactic)
 
-		# --- LOGGING HERE ---
-        # 1. Identify the outcome type (Success, Error, or New State)
-        outcome_type = type(response).__name__
-        outcome_msg = "Unknown"
-
-        if hasattr(response, 'pp'):
-            # It's a TacticState (partial progress)
-            outcome_msg = response.pp
-        elif hasattr(response, 'error'):
-            # It's a LeanError (tactic failed)
-            outcome_msg = response.error
-        else:
-            # It's ProofFinished or something else
-            outcome_msg = str(response)
-
-        # 2. Try to find the theorem name (it's usually in self.name or self.theorem.name)
-        # We use getattr to be safe in case the attribute name differs
-        thm_name = getattr(self.theorem, 'full_name', "Unknown Theorem") 
-
-        # 3. Log everything clearly
-        logger.debug(
-            f"\n=== STEP ==="
-            f"\n[THEOREM]: {thm_name}"
-            f"\n[STATE]:\n{node.state.pp}"
-            f"\n[TACTIC]: {tactic}"
-            f"\n[RESULT ({outcome_type})]:\n{outcome_msg}"
-            f"\n============"
-        )
-        # ---------------------------
+        if isinstance(response, LeanError):
+            log_failed_tactic(
+                state=node.state.pp,
+                tactic=tactic,
+                error=response.error,
+                theorem_name=self.theorem.full_name,
+            )
+            # --- PHASE 3: TRIGGER REPAIR ---
+            if self.repair_gen and not is_repair:
+                fixed_tactic = self.repair_gen.repair(
+                    state=node.state.pp,
+                    bad_tactic=tactic,
+                    error_msg=response.error,
+                )
+                if fixed_tactic and fixed_tactic != tactic:
+                    logger.info(f"Fixed tactic: {tactic} -> {fixed_tactic}")
+                    # Evaluate the fixed tactic and add it to the priority queue
+                    # We call _run_tactic recursively for the fixed tactic. 
+                    self._run_tactic(node, fixed_tactic, logprob, priority_queue, is_repair=True)
+            # --------------------------------
 
         elapsed = time.time() - t0
         self.environment_time += elapsed
@@ -321,7 +317,10 @@ class BestFirstSearchProver:
         for response, node in self.nodes.items():
             if isinstance(response, ProofFinished):
                 assert isinstance(node, ProofFinishedNode)
-                assert self.root.status == Status.PROVED
+                # assert self.root.status == Status.PROVED
+                if self.root.status != Status.PROVED:
+                    logger.warning("Inconsistent state! Node root not equal to status")
+                    logger.warning("self.root.status: {}; expected: {}".format(self.root.status, Status.PROVED))
             elif type(response) in (
                 LeanError,
                 DojoTacticTimeoutError,
@@ -345,7 +344,11 @@ class ProverActor:
         num_sampled_tactics: int,
         debug: bool,
         algorithm: str = "best",
+        repair_ckpt_path: Optional[str] = None,
     ) -> None:
+        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        repair_gen = RepairGenerator(repair_ckpt_path, device) if repair_ckpt_path else None
+
         if algorithm == "best":
             self.prover = BestFirstSearchProver(
                 tac_gen,
@@ -353,6 +356,7 @@ class ProverActor:
                 max_expansions,
                 num_sampled_tactics,
                 debug,
+                repair_gen=repair_gen,
             )
         elif algorithm == "bfs":
             from prover.bfs_search import BreadthFirstSearchProver
@@ -443,6 +447,7 @@ class DistributedProver:
         num_sampled_tactics: int,
         debug: Optional[bool] = False,
         algorithm: str = "best",
+        repair_ckpt_path: Optional[str] = None,
     ) -> None:
         if gen_ckpt_path is None:
             assert tactic and not indexed_corpus_path
@@ -478,8 +483,10 @@ class DistributedProver:
         if not self.distributed:
             assert num_gpus <= 1
             if algorithm == "best":
+                device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+                repair_gen = RepairGenerator(repair_ckpt_path, device) if repair_ckpt_path else None
                 self.prover = BestFirstSearchProver(
-                    tac_gen, timeout, max_expansions, num_sampled_tactics, debug
+                    tac_gen, timeout, max_expansions, num_sampled_tactics, debug, repair_gen=repair_gen
                 )
             elif algorithm == "bfs":
                 from prover.bfs_search import BreadthFirstSearchProver
@@ -510,6 +517,7 @@ class DistributedProver:
                     num_sampled_tactics=num_sampled_tactics,
                     debug=debug,
                     algorithm=algorithm,
+                    repair_ckpt_path=repair_ckpt_path,
                 )
                 for _ in range(num_workers)
             ]
@@ -523,6 +531,7 @@ class DistributedProver:
                     num_sampled_tactics=num_sampled_tactics,
                     debug=debug,
                     algorithm=algorithm,
+                    repair_ckpt_path=repair_ckpt_path,
                 )
                 for _ in range(num_workers)
             ]

@@ -148,6 +148,7 @@ def evaluate(
     dataset: str = "leandojo",
     repo_url: Optional[str] = None,
     commit: Optional[str] = None,
+    repair_ckpt_path: Optional[str] = None,
 ) -> float:
     set_logger(verbose)
 
@@ -173,6 +174,7 @@ def evaluate(
         num_sampled_tactics=num_sampled_tactics,
         debug=verbose,
         algorithm=algorithm,
+        repair_ckpt_path=repair_ckpt_path,
     )
     results = prover.search_unordered(repo, theorems, positions)
 
@@ -287,6 +289,11 @@ def main() -> None:
         help="The search algorithm to use.",
     )
     parser.add_argument(
+        "--repair-ckpt-path",
+        type=str,
+        help="Checkpoint of the error repair model.",
+    )
+    parser.add_argument(
         "--dataset",
         type=str,
         choices=["leandojo", "minif2f", "veribench"],
@@ -345,6 +352,7 @@ def main() -> None:
         args.dataset,
         args.repo_url,
         args.commit,
+        args.repair_ckpt_path,
     )
 
     logger.info(f"Pass@1: {pass_1}")

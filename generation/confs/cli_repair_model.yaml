@@ -1,0 +1,21 @@
+data_path: data/leandojo_benchmark_4/random # Path to the original LeanDojo data (for evaluation, if needed)
+
+# Model parameters
+model_name: google/byt5-small # Architecture for the repair model
+max_inp_seq_len: 2048 # Maximum input sequence length for the repair model
+max_oup_seq_len: 512 # Maximum output sequence length for the repair model
+
+# Training parameters
+batch_size: 8
+num_gpus: 1
+epochs: 10
+lr: 1e-4
+warmup_steps: 1000
+
+# Logging and checkpointing
+log_dir: logs/repair_model_train # Directory to save logs and checkpoints
+exp_name: error_repair_experiment # Experiment name for logging
+
+# Dataset curation (parameters for scripts/curate_dataset.py)
+failed_tactic_log: logs/failed_tactics.jsonl # Output from prover (Phase 1)
+curated_dataset_output: data/curated_failed_tactics.json # Output of the curation script

@@ -1,13 +1,37 @@
 import ray
 import openai
+import torch
 from lean_dojo import Pos
 from loguru import logger
 from typing import List, Tuple
 from abc import ABC, abstractmethod
-from transformers import AutoModelForSeq2SeqLM, AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForSeq2SeqLM, AutoModelForCausalLM, AutoTokenizer, T5ForConditionalGeneration
 
 from retrieval.model import PremiseRetriever
 from common import remove_marks, zip_strict, format_augmented_state
+
+
+from transformers import T5ForConditionalGeneration, AutoTokenizer
+
+
+class RepairGenerator:
+    """A generator that takes a failed tactic and its error message and suggests a fix."""
+
+    def __init__(self, ckpt_path: str, device: torch.device) -> None:
+        self.device = device
+        self.tokenizer = AutoTokenizer.from_pretrained(ckpt_path)
+        self.generator = T5ForConditionalGeneration.from_pretrained(ckpt_path).to(device)
+        self.generator.eval()
+
+    @torch.no_grad()
+    def repair(self, state: str, bad_tactic: str, error_msg: str) -> str:
+        input_text = f"State: {state} | Bad Tactic: {bad_tactic} | Error: {error_msg}"
+        input_ids = self.tokenizer(
+            input_text, return_tensors="pt", max_length=2048, truncation=True
+        ).input_ids.to(self.device)
+        
+        output_ids = self.generator.generate(input_ids, max_length=512)
+        return self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
 
 
 class TacticGenerator(ABC):
@@ -184,12 +208,8 @@ class HuggingFaceGenerator(TacticGenerator):
         self.template = template
 
     def initialize(self) -> None:
-        try:
-            self.generator = AutoModelForSeq2SeqLM.from_pretrained(self.model_path)
-            self.decoder_only = False
-        except ValueError:
-            self.generator = AutoModelForCausalLM.from_pretrained(self.model_path)
-            self.decoder_only = True
+        self.generator = T5ForConditionalGeneration.from_pretrained(self.model_path)
+        self.decoder_only = False
         self.generator = self.generator.to(self.device).eval()
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
 
