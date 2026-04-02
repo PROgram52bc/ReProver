@@ -197,10 +197,10 @@ class BestFirstSearchProver:
         # new nodes are added to `self.nodes`, and edges are added to the result node.
         results = []
         for tactic, logprob in suggestions:
-            edge, finished = self._run_tactic(
+            edges, finished = self._run_tactic(
                 search_node, tactic, logprob, priority_queue
             )
-            results.append(edge)
+            results.extend(edges)
             if finished:
                 break
 
@@ -243,9 +243,12 @@ class BestFirstSearchProver:
 
     def _run_tactic(
         self, node: InternalNode, tactic: str, logprob: float, priority_queue, is_repair: bool = False
-    ) -> Tuple[Edge, bool]:
+    ) -> Tuple[List[Edge], bool]:
         t0 = time.time()
         response = self.dojo.run_tac(node.state, tactic)
+
+        edges = []
+        finished = isinstance(response, ProofFinished)
 
         if isinstance(response, LeanError):
             log_failed_tactic(
@@ -264,8 +267,12 @@ class BestFirstSearchProver:
                 if fixed_tactic and fixed_tactic != tactic:
                     logger.info(f"Fixed tactic: {tactic} -> {fixed_tactic}")
                     # Evaluate the fixed tactic and add it to the priority queue
-                    # We call _run_tactic recursively for the fixed tactic. 
-                    self._run_tactic(node, fixed_tactic, logprob, priority_queue, is_repair=True)
+                    # Apply a small penalty to the repaired tactic's priority
+                    repair_edges, repair_finished = self._run_tactic(
+                        node, fixed_tactic, logprob - 0.5, priority_queue, is_repair=True
+                    )
+                    edges.extend(repair_edges)
+                    finished = finished or repair_finished
             # --------------------------------
 
         elapsed = time.time() - t0
@@ -304,8 +311,10 @@ class BestFirstSearchProver:
 
         if isinstance(result_node, InternalNode):
             result_node.in_edges.append(edge)
+        
+        edges.append(edge)
 
-        return edge, isinstance(response, ProofFinished)
+        return edges, finished
 
     #########
     # DEBUG #
@@ -345,9 +354,16 @@ class ProverActor:
         debug: bool,
         algorithm: str = "best",
         repair_ckpt_path: Optional[str] = None,
+        max_inp_seq_len: int = 2048,
+        max_oup_seq_len: int = 512,
     ) -> None:
         device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-        repair_gen = RepairGenerator(repair_ckpt_path, device) if repair_ckpt_path else None
+        repair_gen = RepairGenerator(
+            repair_ckpt_path,
+            device,
+            max_inp_seq_len=max_inp_seq_len,
+            max_oup_seq_len=max_oup_seq_len,
+        ) if repair_ckpt_path else None
 
         if algorithm == "best":
             self.prover = BestFirstSearchProver(
@@ -484,7 +500,12 @@ class DistributedProver:
             assert num_gpus <= 1
             if algorithm == "best":
                 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-                repair_gen = RepairGenerator(repair_ckpt_path, device) if repair_ckpt_path else None
+                repair_gen = RepairGenerator(
+                    repair_ckpt_path,
+                    device,
+                    max_inp_seq_len=max_inp_seq_len,
+                    max_oup_seq_len=max_oup_seq_len,
+                ) if repair_ckpt_path else None
                 self.prover = BestFirstSearchProver(
                     tac_gen, timeout, max_expansions, num_sampled_tactics, debug, repair_gen=repair_gen
                 )
@@ -518,6 +539,8 @@ class DistributedProver:
                     debug=debug,
                     algorithm=algorithm,
                     repair_ckpt_path=repair_ckpt_path,
+                    max_inp_seq_len=max_inp_seq_len,
+                    max_oup_seq_len=max_oup_seq_len,
                 )
                 for _ in range(num_workers)
             ]
@@ -532,6 +555,8 @@ class DistributedProver:
                     debug=debug,
                     algorithm=algorithm,
                     repair_ckpt_path=repair_ckpt_path,
+                    max_inp_seq_len=max_inp_seq_len,
+                    max_oup_seq_len=max_oup_seq_len,
                 )
                 for _ in range(num_workers)
             ]

@@ -45,7 +45,7 @@ data:
   corpus_path: data/leandojo_benchmark_4/corpus.jsonl
   num_negatives: 3
   num_in_file_negatives: 1
-  batch_size: 8
+  batch_size: 1
   eval_batch_size: 64
-  max_seq_len: 1024
+  max_seq_len: 512
   num_workers: 4

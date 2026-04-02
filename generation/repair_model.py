@@ -2,8 +2,8 @@
 
 import torch
 import pytorch_lightning as pl
-from transformers import T5ForConditionalGeneration, AutoTokenizer
-from typing import Dict, Any
+from transformers import T5ForConditionalGeneration, AutoModelForCausalLM, AutoTokenizer
+from typing import Dict, Any, Optional
 
 from common import get_optimizers
 
@@ -18,6 +18,8 @@ class ErrorRepairModel(pl.LightningModule):
         warmup_steps: int,
         max_inp_seq_len: int,
         max_oup_seq_len: int,
+        is_causal: bool = False,
+        use_gradient_checkpointing: bool = False,
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
@@ -25,9 +27,25 @@ class ErrorRepairModel(pl.LightningModule):
         self.warmup_steps = warmup_steps
         self.max_inp_seq_len = max_inp_seq_len
         self.max_oup_seq_len = max_oup_seq_len
+        self.is_causal = is_causal
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = T5ForConditionalGeneration.from_pretrained(model_name)
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+
+        if is_causal:
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                torch_dtype=torch.bfloat16
+                if torch.cuda.is_available()
+                else torch.float32,
+                trust_remote_code=True,
+            )
+        else:
+            self.model = T5ForConditionalGeneration.from_pretrained(model_name)
+        
+        if use_gradient_checkpointing:
+            self.model.gradient_checkpointing_enable()
 
     def forward(
         self,
@@ -35,11 +53,18 @@ class ErrorRepairModel(pl.LightningModule):
         attention_mask: torch.Tensor,
         labels: torch.Tensor,
     ) -> torch.Tensor:
-        return self.model(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            labels=labels,
-        ).loss
+        if self.is_causal:
+            return self.model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=labels,
+            ).loss
+        else:
+            return self.model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=labels,
+            ).loss
 
     def training_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
         loss = self(

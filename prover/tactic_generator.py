@@ -1,37 +1,127 @@
+import re
 import ray
 import openai
 import torch
 from lean_dojo import Pos
 from loguru import logger
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from abc import ABC, abstractmethod
-from transformers import AutoModelForSeq2SeqLM, AutoModelForCausalLM, AutoTokenizer, T5ForConditionalGeneration
+from transformers import (
+    AutoModelForSeq2SeqLM,
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    T5ForConditionalGeneration,
+)
 
 from retrieval.model import PremiseRetriever
 from common import remove_marks, zip_strict, format_augmented_state
 
 
-from transformers import T5ForConditionalGeneration, AutoTokenizer
-
-
 class RepairGenerator:
     """A generator that takes a failed tactic and its error message and suggests a fix."""
 
-    def __init__(self, ckpt_path: str, device: torch.device) -> None:
+    def __init__(
+        self,
+        ckpt_path: str,
+        device: torch.device,
+        max_inp_seq_len: int = 2048,
+        max_oup_seq_len: int = 512,
+    ) -> None:
         self.device = device
+        self.max_inp_seq_len = max_inp_seq_len
+        self.max_oup_seq_len = max_oup_seq_len
         self.tokenizer = AutoTokenizer.from_pretrained(ckpt_path)
-        self.generator = T5ForConditionalGeneration.from_pretrained(ckpt_path).to(device)
+        if "gAPRIL" in ckpt_path or "wo-exp" in ckpt_path:
+            self.generator = AutoModelForCausalLM.from_pretrained(
+                ckpt_path,
+                torch_dtype=torch.bfloat16
+                if torch.cuda.is_available()
+                else torch.float32,
+                trust_remote_code=True,
+                device_map="auto" if device.type == "cuda" else None,
+            )
+            self.is_causal = True
+        else:
+            self.generator = T5ForConditionalGeneration.from_pretrained(ckpt_path).to(
+                device
+            )
+            self.is_causal = False
         self.generator.eval()
+
+    def _extract_proof(self, output: str) -> Optional[str]:
+        lean_codes = re.findall(r"```lean\s*(.*?)\s*```", output, re.DOTALL)
+        if not lean_codes:
+            lean_codes = re.findall(r"```lean4\s*(.*?)\s*```", output, re.DOTALL)
+
+        if not lean_codes:
+            return None
+
+        # Return the last lean block that looks like a proof
+        words = ["by", ":="]
+        for i in range(len(lean_codes)):
+            lean_code = lean_codes[-i - 1].strip()
+            if all(word in lean_code for word in words):
+                return lean_code
+        return lean_codes[-1].strip()
 
     @torch.no_grad()
     def repair(self, state: str, bad_tactic: str, error_msg: str) -> str:
-        input_text = f"State: {state} | Bad Tactic: {bad_tactic} | Error: {error_msg}"
-        input_ids = self.tokenizer(
-            input_text, return_tensors="pt", max_length=2048, truncation=True
-        ).input_ids.to(self.device)
-        
-        output_ids = self.generator.generate(input_ids, max_length=512)
-        return self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
+        if self.is_causal:
+            system_prompt = (
+                "You are a Lean 4 programmer diagnosing a single failing proof. "
+                "Assume you only see the incorrect proof text, the infoview state"
+                " near the failure, and Lean's error message."
+            )
+            user_prompt = f"""
+**Instruction:** Provide the full corrected Lean 4 theorem/proof in a single ```lean``` code block.
+
+**Context:**
+
+Incorrect proof:
+```lean
+{bad_tactic}
+```
+
+Infoview state:
+{state}
+
+Line at error:
+{bad_tactic}
+
+Lean error:
+{error_msg}
+""".strip()
+
+            chat = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ]
+
+            inputs = self.tokenizer.apply_chat_template(
+                chat, tokenize=True, add_generation_prompt=True, return_tensors="pt"
+            ).to(self.generator.device)
+
+            output_ids = self.generator.generate(
+                inputs, max_new_tokens=self.max_oup_seq_len, do_sample=False
+            )
+            new_tokens = output_ids[0][inputs.shape[-1] :]
+            decoded_output = self.tokenizer.decode(new_tokens, skip_special_tokens=True)
+            fixed_tactic = self._extract_proof(decoded_output)
+            return fixed_tactic if fixed_tactic else bad_tactic
+
+        else:
+            input_text = f"State: {state} | Bad Tactic: {bad_tactic} | Error: {error_msg}"
+            input_ids = self.tokenizer(
+                input_text,
+                return_tensors="pt",
+                max_length=self.max_inp_seq_len,
+                truncation=True,
+            ).input_ids.to(self.device)
+
+            output_ids = self.generator.generate(
+                input_ids, max_length=self.max_oup_seq_len
+            )
+            return self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
 
 
 class TacticGenerator(ABC):

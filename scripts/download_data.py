@@ -9,9 +9,18 @@ from loguru import logger
 LEANDOJO_BENCHMARK_4_URL = (
     "https://zenodo.org/records/12740403/files/leandojo_benchmark_4.tar.gz?download=1"
 )
+MINIF2F_URL = "https://raw.githubusercontent.com/leanprover-community/miniF2F/master/lean4/test.json"
+
 DOWNLOADS = {
     LEANDOJO_BENCHMARK_4_URL: "25e1ee60cd8925b9d2e8673ddcc34b4c",
 }
+
+def download_minif2f(data_path):
+    logger.info("Downloading MiniF2F test.json")
+    os.makedirs(f"{data_path}/minif2f", exist_ok=True)
+    path = f"{data_path}/minif2f/test.json"
+    os.system(f"wget {MINIF2F_URL} -O {path}")
+
 
 
 def check_md5(filename: str, gt_hashcode: str) -> bool:
@@ -42,6 +51,10 @@ def main() -> None:
         os.mkdir(args.data_path)
 
     for url, hashcode in DOWNLOADS.items():
+        # Skip download if extracted data already exists
+        if os.path.exists(f"{args.data_path}/leandojo_benchmark_4"):
+            continue
+
         logger.info(f"Downloading {url}")
         path = f"{args.data_path}/{os.path.basename(url)}"
         os.system(f"wget {url} -O {path}")
@@ -53,6 +66,8 @@ def main() -> None:
 
         logger.info(f"Removing {path}")
         os.remove(path)
+    
+    download_minif2f(args.data_path)
 
     logger.info("Done!")
 
