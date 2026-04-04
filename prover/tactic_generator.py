@@ -106,8 +106,10 @@ Lean error:
             )
             new_tokens = output_ids[0][inputs.shape[-1] :]
             decoded_output = self.tokenizer.decode(new_tokens, skip_special_tokens=True)
+            logger.info(f"Full Repair Model Output:\n{decoded_output}")
             fixed_tactic = self._extract_proof(decoded_output)
             return fixed_tactic if fixed_tactic else bad_tactic
+
 
         else:
             input_text = f"State: {state} | Bad Tactic: {bad_tactic} | Error: {error_msg}"

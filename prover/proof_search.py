@@ -89,6 +89,7 @@ class BestFirstSearchProver:
         self.posision = pos
         self.actor_time = 0.0
         self.environment_time = 0.0
+        self.repair_time = 0.0
         self.num_expansions = 0
 
         if isinstance(self.tac_gen, FixedTacticGenerator):
@@ -153,7 +154,8 @@ class BestFirstSearchProver:
                 assert time.time() - time_start >= self.timeout
 
             self.total_time = time.time() - time_start
-            if self.total_time > self.timeout or (
+            effective_time = self.total_time - self.repair_time
+            if effective_time > self.timeout or (
                 self.max_expansions is not None
                 and self.num_expansions > self.max_expansions
             ):
@@ -161,7 +163,7 @@ class BestFirstSearchProver:
                     logger.info("Found a proof!")
                 else:
                     self.root.status = Status.OPEN
-                logger.info("Hit the resource limit (timeout or max_expansions).")
+                logger.info(f"Hit the resource limit. Effective time: {effective_time:.2f}s, Repair overhead: {self.repair_time:.2f}s")
                 break
 
             if self.root.status == Status.FAILED:
@@ -247,6 +249,17 @@ class BestFirstSearchProver:
         t0 = time.time()
         response = self.dojo.run_tac(node.state, tactic)
 
+        # Comprehensive Logging
+        prefix = "[REPAIR] " if is_repair else ""
+        if isinstance(response, TacticState):
+            logger.info(f"{prefix}Tactic succeeded: {tactic} | New State: {response.pp}")
+        elif isinstance(response, ProofFinished):
+            logger.info(f"{prefix}Tactic finished proof: {tactic}")
+        elif isinstance(response, LeanError):
+            logger.info(f"{prefix}Tactic failed: {tactic} | Error: {response.error}")
+        else:
+            logger.info(f"{prefix}Tactic result ({type(response).__name__}): {tactic}")
+
         edges = []
         finished = isinstance(response, ProofFinished)
 
@@ -259,6 +272,7 @@ class BestFirstSearchProver:
             )
             # --- PHASE 3: TRIGGER REPAIR ---
             if self.repair_gen and not is_repair:
+                repair_start = time.time()
                 fixed_tactic = self.repair_gen.repair(
                     state=node.state.pp,
                     bad_tactic=tactic,
@@ -273,6 +287,9 @@ class BestFirstSearchProver:
                     )
                     edges.extend(repair_edges)
                     finished = finished or repair_finished
+                
+                # Exclude the entire repair phase (LLM + recursive execution) from search timeout
+                self.repair_time += time.time() - repair_start
             # --------------------------------
 
         elapsed = time.time() - t0
