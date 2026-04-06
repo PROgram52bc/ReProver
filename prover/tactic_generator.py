@@ -339,7 +339,10 @@ class HuggingFaceGenerator(TacticGenerator):
         raw_output_text = self.tokenizer.batch_decode(
             output.sequences, skip_special_tokens=True
         )
-        raw_scores = output.sequences_scores.tolist()
+        if hasattr(output, "sequences_scores"):
+            raw_scores = output.sequences_scores.tolist()
+        else:
+            raw_scores = [0.0] * len(raw_output_text)
 
         output_text = []
         output_score = []
