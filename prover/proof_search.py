@@ -148,6 +148,7 @@ class BestFirstSearchProver:
                 num_searched_nodes=self.num_expansions,
             )
             logger.info(result)
+            logger.info(f"[PROFILE] THEOREM_SUMMARY: {thm.full_name} | Total Time: {self.total_time:.4f}s | Actor Time: {self.actor_time:.4f}s | Environment Time: {self.environment_time:.4f}s | Repair Time: {self.repair_time:.4f}s")
             return result
 
         except DojoInitError as ex:
@@ -255,16 +256,21 @@ class BestFirstSearchProver:
             num_samples=self.num_sampled_tactics,
         )
 
-        self.actor_time += time.time() - t0
+        duration = time.time() - t0
+        self.actor_time += duration
+        logger.info(f"[PROFILE] Event: GENERATE_TACTICS | Duration: {duration:.4f}s")
 
         logger.debug(f"Tactic suggestions: {suggestions}")
         return suggestions
 
     def _run_tactic(
         self, node: InternalNode, tactic: str, logprob: float, priority_queue, is_repair: bool = False
-    ) -> Tuple[List[Edge], bool]:
+    ) -> Tuple[Edge, bool]:
         t0 = time.time()
         response = self.dojo.run_tac(node.state, tactic)
+        duration = time.time() - t0
+        self.environment_time += duration
+        logger.info(f"[PROFILE] Event: RUN_TACTIC | Duration: {duration:.4f}s | Tactic: {tactic}")
 
         # Comprehensive Logging
         prefix = ""
@@ -286,9 +292,6 @@ class BestFirstSearchProver:
                 error=response.error,
                 theorem_name=self.theorem.full_name,
             )
-
-        elapsed = time.time() - t0
-        self.environment_time += elapsed
 
         try:
             # If we've seen this response before, use the existing node
@@ -349,17 +352,22 @@ class BestFirstSearchProver:
         if depth >= self.repair_count:
             return
             
-        repair_start = time.time()
+        repair_llm_start = time.time()
         fixed_tactic = self.repair_gen.repair(original_node.state.pp, bad_tactic, error_msg)
+        llm_duration = time.time() - repair_llm_start
+        logger.info(f"[PROFILE] Event: REPAIR_LLM | Duration: {llm_duration:.4f}s | Depth: {depth}")
         
         if not fixed_tactic or fixed_tactic == bad_tactic:
-            self.repair_time += time.time() - repair_start
+            self.repair_time += llm_duration
             return
             
         # Run the fixed tactic from the ORIGINAL node state
         t0 = time.time()
         response = self.dojo.run_tac(original_node.state, fixed_tactic)
-        self.repair_time += (time.time() - t0) + (time.time() - repair_start)
+        lean_duration = time.time() - t0
+        logger.info(f"[PROFILE] Event: REPAIR_LEAN | Duration: {lean_duration:.4f}s | Depth: {depth}")
+        
+        self.repair_time += lean_duration + llm_duration
         
         # Comprehensive Logging for Repair
         prefix = f"[REPAIR-{depth+1}] "
