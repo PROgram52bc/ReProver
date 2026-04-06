@@ -153,26 +153,12 @@ chmod +x scripts/train_april.sh
    ```
 
 ## 9. Analysis & Visualization
-ReProver includes tools to analyze search behavior and performance.
+For qualitative analysis, search path visualization, and performance profiling, please see the [Search Graph Guide](search_graph.md).
 
-### Tactic Comparison
-To compare two runs (e.g., with and without repair):
-```bash
-python analyze_repair.py baseline.log repair.log --output analysis.csv
-```
-
-### Visualizing Search Trees
-To visualize the exploration of the Best-First Search tree:
-```bash
-python plot_search_tree.py logs/trace_xxx.log --output tree.mmd
-```
-Paste the contents of `tree.mmd` into the [Mermaid Live Editor](https://mermaid.live/).
-
-### Visualizing Runtime Distribution
-To see a breakdown of time spent in different stages:
-```bash
-python plot_profile.py logs/trace_xxx.log --output profile.mmd
-```
+This guide covers:
+- Identifying gains and regressions between runs using `compare_outcomes.py`.
+- Visualizing search trees and repair chains using `plot_search_tree.py`.
+- Analyzing runtime distribution with `plot_profile.py`.
 
 ## 10. Summary of Results
 | Algorithm | Configuration | Num Tactics | Num Theorems | Pass@1 |
