@@ -120,7 +120,7 @@ class BestFirstSearchProver:
                 root_id = self._get_node_id(init_state)
                 self.root = InternalNode(
                     state=init_state,
-                    node_id=root_id,
+                    _node_id=root_id,
                     cumulative_logprob=0.0,
                 )
                 logger.info(f"[TREE_NODE] ID: {root_id} | State: {init_state.pp}")
@@ -205,6 +205,11 @@ class BestFirstSearchProver:
             _, search_node = priority_queue.get_nowait()
         except asyncio.QueueEmpty:
             return
+        
+        if search_node.is_explored:
+            priority_queue.task_done()
+            return
+            
         logger.debug(f"Expanding node: {search_node}")
 
         if isinstance(search_node.state, TacticState):
@@ -302,7 +307,7 @@ class BestFirstSearchProver:
             # Build a new node
             if isinstance(response, ProofFinished):
                 dst_id = f"FINISH_{self.next_edge_id}"
-                result_node = ProofFinishedNode(inner=response, node_id=dst_id)
+                result_node = ProofFinishedNode(inner=response, _node_id=dst_id)
                 logger.info(f"[TREE_NODE] ID: {dst_id} | State: PROOF_FINISHED")
             elif type(response) in (
                 LeanError,
@@ -310,14 +315,14 @@ class BestFirstSearchProver:
                 ProofGivenUp,
             ):
                 dst_id = f"ERROR_{self.next_edge_id}"
-                result_node = ErrorNode(inner=response, node_id=dst_id)
+                result_node = ErrorNode(inner=response, _node_id=dst_id)
                 logger.info(f"[TREE_NODE] ID: {dst_id} | State: ERROR: {response.error if hasattr(response, 'error') else response}")
             else:
                 assert isinstance(response, TacticState)
                 node_id = self._get_node_id(response)
                 result_node = InternalNode(
                     state=response,
-                    node_id=node_id,
+                    _node_id=node_id,
                     cumulative_logprob=logprob + node.cumulative_logprob,
                 )
                 # Log the new node for plotting
@@ -383,11 +388,11 @@ class BestFirstSearchProver:
 
         if isinstance(response, ProofFinished):
             dst_id = f"FINISH_{self.next_edge_id}"
-            result_node = ProofFinishedNode(inner=response, node_id=dst_id)
+            result_node = ProofFinishedNode(inner=response, _node_id=dst_id)
             logger.info(f"[TREE_NODE] ID: {dst_id} | State: PROOF_FINISHED")
         elif type(response) in (LeanError, DojoTacticTimeoutError, ProofGivenUp):
             dst_id = f"ERROR_{self.next_edge_id}"
-            result_node = ErrorNode(inner=response, node_id=dst_id)
+            result_node = ErrorNode(inner=response, _node_id=dst_id)
             logger.info(f"[TREE_NODE] ID: {dst_id} | State: ERROR: {response.error if hasattr(response, 'error') else response}")
         else:
             # For successful repairs, we check if we've seen this state before
@@ -397,7 +402,7 @@ class BestFirstSearchProver:
                 node_id = self._get_node_id(response)
                 result_node = InternalNode(
                     state=response, 
-                    node_id=node_id,
+                    _node_id=node_id,
                     cumulative_logprob=logprob + original_node.cumulative_logprob - 0.5
                 )
                 logger.info(f"[TREE_NODE] ID: {node_id} | State: {response.pp}")

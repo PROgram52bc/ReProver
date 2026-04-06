@@ -45,14 +45,23 @@ class Node(ABC):
     def extract_proof(self) -> Optional[List[str]]:
         raise NotImplementedError
 
+    @property
+    @abstractmethod
+    def node_id(self) -> str:
+        raise NotImplementedError
+
 
 @dataclass
 class ProofFinishedNode(Node):
     inner: ProofFinished
-    node_id: str
+    _node_id: str
     status = Status.PROVED
     distance_to_proof = 0
     is_terminal = True
+
+    @property
+    def node_id(self) -> str:
+        return self._node_id
 
     def extract_proof(self) -> List[str]:
         return []
@@ -61,7 +70,7 @@ class ProofFinishedNode(Node):
 @dataclass
 class ErrorNode(Node):
     inner: Union[LeanError, DojoTacticTimeoutError, ProofGivenUp]
-    node_id: str
+    _node_id: str
     in_edges: List["Edge"] = field(
         default_factory=list, init=False, compare=False, repr=False
     )
@@ -74,13 +83,18 @@ class ErrorNode(Node):
     )
 
     @property
+    def node_id(self) -> str:
+        return self._node_id
+
+    @property
     def out_edges(self):
         return self._out_edges
 
     @out_edges.setter
     def out_edges(self, out_edges: Iterable["Edge"]) -> Optional[List["Edge"]]:
         if self.is_explored:
-            raise RuntimeError("Node is already explored.")
+            # Relaxed for repair cycles, but we still want to avoid redundant work
+            return
 
         self._out_edges = list(out_edges)
         self._recompute_status()
@@ -88,7 +102,7 @@ class ErrorNode(Node):
 
     @property
     def is_explored(self) -> bool:
-        return self.out_edges is not None
+        return self._out_edges is not None
 
     @property
     def status(self) -> Status:
@@ -99,12 +113,12 @@ class ErrorNode(Node):
         self._status = s
 
     def _recompute_status(self):
-        if not self.is_explored or self.out_edges is None:
+        if not self.is_explored or self._out_edges is None:
             return
 
-        if any(edge.dst.status == Status.PROVED for edge in self.out_edges):
+        if any(edge.dst.status == Status.PROVED for edge in self._out_edges):
             self._status = Status.PROVED
-        elif all(edge.dst.status == Status.FAILED for edge in self.out_edges):
+        elif all(edge.dst.status == Status.FAILED for edge in self._out_edges):
             self._status = Status.FAILED
         else:
             self._status = Status.OPEN
@@ -118,8 +132,11 @@ class ErrorNode(Node):
         return self._distance_to_proof
 
     def _recompute_distance_to_proof(self):
-        if self.out_edges:
-            distance = min(edge.distance_to_proof() for edge in self.out_edges)
+        if not self.is_explored or self._out_edges is None:
+            return
+
+        if self._out_edges:
+            distance = min(edge.distance_to_proof() for edge in self._out_edges)
         else:
             distance = math.inf
 
@@ -130,15 +147,15 @@ class ErrorNode(Node):
 
     @property
     def is_terminal(self) -> bool:
-        return not self.is_explored or len(self.out_edges) == 0
+        return not self.is_explored or len(self._out_edges) == 0
 
     def extract_proof(self) -> Optional[List[str]]:
         if self.status != Status.PROVED:
             return None
-        assert self.is_explored and self.out_edges is not None
+        assert self.is_explored and self._out_edges is not None
 
         proving_edge = min(
-            self.out_edges,
+            self._out_edges,
             key=Edge.distance_to_proof,
         )
         child_proof = proving_edge.dst.extract_proof()
@@ -159,7 +176,7 @@ class InternalNode(Node):
     # Goal state this node represents. Two nodes are considered equal if their states
     # are equal; this is the only hashed field and must not be changed.
     state: TacticState = field(compare=True)
-    node_id: str = field(compare=False)
+    _node_id: str = field(compare=False)
 
     # The sum of action logprobs along edges from the root to this node
     cumulative_logprob: float = field(compare=False, repr=False)
@@ -191,6 +208,10 @@ class InternalNode(Node):
     )
 
     @property
+    def node_id(self) -> str:
+        return self._node_id
+
+    @property
     def out_edges(self):
         return self._out_edges
 
@@ -198,7 +219,7 @@ class InternalNode(Node):
     @out_edges.setter
     def out_edges(self, out_edges: Iterable["Edge"]) -> Optional[List["Edge"]]:
         if self.is_explored:
-            raise RuntimeError("Node is already explored.")
+            return
 
         self._out_edges = list(out_edges)
         self._recompute_status()
@@ -208,7 +229,7 @@ class InternalNode(Node):
     # a list of candidate children. Explored nodes are never re-searched.
     @property
     def is_explored(self) -> bool:
-        return self.out_edges is not None
+        return self._out_edges is not None
 
     @property
     def status(self) -> Status:
@@ -222,7 +243,7 @@ class InternalNode(Node):
         """
         Recursively update the status of the current node and its ancestors.
         """
-        if not self.is_explored or self.out_edges is None:
+        if not self.is_explored or self._out_edges is None:
             return
 
         # If this node is proved or failed, nothing can change that
@@ -230,11 +251,11 @@ class InternalNode(Node):
             return
 
         # If any child is proved, this node is proved, and so are parents recursively
-        if any(edge.dst.status == Status.PROVED for edge in self.out_edges):
+        if any(edge.dst.status == Status.PROVED for edge in self._out_edges):
             self._status = Status.PROVED
 
         # If all children failed, this node is failed. This may fail some parents too.
-        if all(edge.dst.status == Status.FAILED for edge in self.out_edges):
+        if all(edge.dst.status == Status.FAILED for edge in self._out_edges):
             self._status = Status.FAILED
 
         # If this node was proved or failed, parents may need to recompute.
@@ -252,11 +273,11 @@ class InternalNode(Node):
         """
         Recursively update the distance_to_proof of the current node and its ancestors.
         """
-        if not self.is_explored or self.out_edges is None:
+        if not self.is_explored or self._out_edges is None:
             return
 
-        if self.out_edges:
-            distance = min(edge.distance_to_proof() for edge in self.out_edges)
+        if self._out_edges:
+            distance = min(edge.distance_to_proof() for edge in self._out_edges)
         else:
             distance = math.inf
 
@@ -279,10 +300,10 @@ class InternalNode(Node):
         """
         if self.status != Status.PROVED:
             return None
-        assert self.is_explored and self.out_edges is not None
+        assert self.is_explored and self._out_edges is not None
 
         proving_edge = min(
-            self.out_edges,
+            self._out_edges,
             key=Edge.distance_to_proof,
         )
         

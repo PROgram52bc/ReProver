@@ -24,7 +24,7 @@ conda activate ReProver
 pip install torch
 
 # 3. Install ReProver dependencies
-pip install tqdm loguru deepspeed "pytorch-lightning[extra]" transformers wandb openai rank_bm25 git+https://github.com/PROgram52bc/LeanDojo.git vllm datasets
+pip install tqdm loguru deepspeed "pytorch-lightning[extra]" transformers wandb openai rank_bm25 git+https://github.com/PROgram52bc/LeanDojo.git vllm datasets huggingface_hub
 ```
 
 ## 3. Configuration
@@ -42,8 +42,6 @@ And every time you log back in, you just need to
 ```bash
 source env.sh
 ```
-
-> Note: `env.sh.template` also does other settings useful for the project, so make sure to source it.
 
 ## 4. Data Setup & Verification
 Clone the repo and verify the installation.
@@ -64,7 +62,7 @@ python scripts/download_data.py
 - **VeriBench**: Formal verification benchmarks.
 
 ### MiniF2F Dataset Setup
-The MiniF2F dataset in its raw format may not be directly compatible with ReProver's current evaluation scripts. You must transform it into standard JSON arrays before running evaluation.
+The MiniF2F dataset must be transformed into standard JSON arrays before running evaluation.
 
 1. **Download and Transform**:
    ```bash
@@ -83,38 +81,18 @@ The MiniF2F dataset in its raw format may not be directly compatible with ReProv
    ```
 
 ## 5. Running the Baseline (Reproduction)
-...
-```
-
-## 11. Analysis & Comparison
-To compare two different runs (e.g., with and without tactic repair) and see a detailed breakdown of which tactics were proposed and fixed, use the `analyze_repair.py` script:
+To reproduce the Pass@1 metric on LeanDojo (default):
 
 ```bash
-python analyze_repair.py baseline.log repair.log --output analysis.csv
-```
-
-The script aligns tactics by theorem and goal state, showing:
-- Original tactics from the generator.
-- Fixed tactics from the repair model.
-- Success/failure results for each tactic in both runs.
-- Comparison of final theorem outcomes (Solved vs. Failed).
-
-## 12. Summary of Results
-
-```bash
-# Example command - adjust paths based on repo contents
-# Note: you might need to run `module load cuda`, or make sure CUDA is available.
 python prover/evaluate.py \
 	--data-path data/leandojo_benchmark_4/random \
 	--gen_ckpt_path kaiyuy/leandojo-lean4-tacgen-byt5-small \
 	--num-sampled-tactics 5 \
 	--num-theorems 50
-# Should take about 60 mins on a machine with GPUs.
-# Expected Final Pass@1 value should be around 0.24
 ```
 
 ## 6. Retrieval-Augmented Generation (RAG)
-To use retrieval-augmented generation, you first need to index the retrieval corpus:
+To use retrieval-augmented generation, first index the corpus:
 
 ```bash
 python retrieval/index.py \
@@ -137,7 +115,7 @@ python prover/evaluate.py \
 ```
 
 ## 7. Proof Repair
-To use proof repair during search, specify a repair model checkpoint.
+To use proof repair during search, specify a repair model checkpoint. You can also specify the number of recursive repair attempts with `--repair-count`.
 
 ### Using the gAPRIL Model (Hugging Face)
 ```bash
@@ -145,6 +123,7 @@ python prover/evaluate.py \
     --data-path data/leandojo_benchmark_4/random \
     --gen_ckpt_path kaiyuy/leandojo-lean4-tacgen-byt5-small \
     --repair-ckpt-path uw-math-ai/gAPRIL-wo-exp \
+    --repair-count 2 \
     --num-sampled-tactics 5 \
     --num-theorems 50
 ```
@@ -173,7 +152,29 @@ chmod +x scripts/train_april.sh
        --log-dir logs/april_repair_train
    ```
 
-## 9. Summary of Results
+## 9. Analysis & Visualization
+ReProver includes tools to analyze search behavior and performance.
+
+### Tactic Comparison
+To compare two runs (e.g., with and without repair):
+```bash
+python analyze_repair.py baseline.log repair.log --output analysis.csv
+```
+
+### Visualizing Search Trees
+To visualize the exploration of the Best-First Search tree:
+```bash
+python plot_search_tree.py logs/trace_xxx.log --output tree.mmd
+```
+Paste the contents of `tree.mmd` into the [Mermaid Live Editor](https://mermaid.live/).
+
+### Visualizing Runtime Distribution
+To see a breakdown of time spent in different stages:
+```bash
+python plot_profile.py logs/trace_xxx.log --output profile.mmd
+```
+
+## 10. Summary of Results
 | Algorithm | Configuration | Num Tactics | Num Theorems | Pass@1 |
 |-----------|---------------|-------------|--------------|--------|
 | BEST      | BEST-Non-retrieval | 5           | 50           | 0.24   |
@@ -185,50 +186,19 @@ chmod +x scripts/train_april.sh
 | BEST      | BEST-Retrieval     | 64          | 200          | 0.4394 |
 | BEST      | BEST-Non-retrieval | 5           | 200          | 0.2727 |
 | BEST      | BEST-Retrieval     | 5           | 200          | 0.3384 |
-| BEST      | APRIL-Repair (T5)  | 5           | 50           | TBD    |
 | BEST      | gAPRIL-Repair      | 5           | 50           | 0.22   |
 
-## 8. Logging
-ReProver uses `loguru` to capture detailed execution traces, search steps, and debugging information.
+## 11. Logging & Profiling
+Detailed traces are saved to `logs/trace_<YYYYMMDD_HHMMSS>.log`.
 
-### Log Locations
-- **Console:** By default, `INFO` level logs are printed to `stderr`.
-- **File:** Detailed traces (including `DEBUG` level) are saved to the `logs/` directory by default.
-  - When running `prover/evaluate.py`, a new log file is created for each run: `logs/trace_<YYYYMMDD_HHMMSS>.log`.
-  - If the `logs/` directory does not exist, it will be created automatically.
-  - You can override the log file path by setting the `REPROVER_LOG_FILE` environment variable:
-    ```bash
-    export REPROVER_LOG_FILE="my_debug_file.log"
-    ```
+### Log Content
+- **`[TREE_NODE]` and `[TREE_EDGE]`**: Structural information for plotting the search tree.
+- **`[PROFILE]`**: Runtime events (Generation, Lean interaction, Repair) for performance analysis.
+- **Compiler Feedback**: The exact response from the Lean compiler for every tactic attempt.
+- **Configuration**: The full set of CLI arguments used for the run is logged at the end.
 
-### Log Format
-Log entries follow this format:
-`YYYY-MM-DD HH:mm:ss | PID:XXXX | LEVEL | Message`
-
-### Tactic Trace Information
-For every step in the proof search, the log captures high-resolution data about the interaction between the model and the Lean environment. This is especially useful for understanding why a proof attempt failed.
-
-Each step in the trace includes:
-- **THEOREM**: The full name of the theorem being processed.
-- **STATE**: The current goal state (tactic state) before a tactic is applied.
-- **TACTIC**: The specific tactic suggested by the model.
-- **RESULT**: The outcome returned by Lean, including the type of response:
-  - `TacticState`: Success, showing the new resulting goal state.
-  - `LeanError`: Failure, including the specific error message from Lean (e.g., "unknown identifier", "tactic failed", etc.).
-  - `ProofFinished`: The tactic successfully closed the goal.
-
-Example of a trace entry for a failed tactic:
-```text
-=== STEP ===
-[THEOREM]: my_theorem
-[STATE]:
-n : ℕ
-⊢ n + 0 = n
-[TACTIC]: induction m
-[RESULT (LeanError)]:
-unknown identifier 'm'
-============
+### Proving a Single Theorem
+You can run proof search for a specific theorem using the `--full-name` argument:
+```bash
+python prover/evaluate.py --full-name "Nat.add_comm" ...
 ```
-
-## 10. Logging
-Detailed traces are saved to `logs/trace_<YYYYMMDD_HHMMSS>.log`. You can view tactic state, suggested tactics, and Lean's error messages for every step.
