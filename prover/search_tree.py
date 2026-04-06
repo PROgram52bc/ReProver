@@ -41,21 +41,109 @@ class Node(ABC):
     def is_terminal(self) -> bool:
         raise NotImplementedError
 
+    @abstractmethod
+    def extract_proof(self) -> Optional[List[str]]:
+        raise NotImplementedError
+
 
 @dataclass
 class ProofFinishedNode(Node):
     inner: ProofFinished
+    node_id: str
     status = Status.PROVED
     distance_to_proof = 0
     is_terminal = True
+
+    def extract_proof(self) -> List[str]:
+        return []
 
 
 @dataclass
 class ErrorNode(Node):
     inner: Union[LeanError, DojoTacticTimeoutError, ProofGivenUp]
-    status = Status.FAILED
-    distance_to_proof = math.inf
-    is_terminal = True
+    node_id: str
+    in_edges: List["Edge"] = field(
+        default_factory=list, init=False, compare=False, repr=False
+    )
+    _out_edges: Optional[List["Edge"]] = field(
+        default=None, init=False, compare=False, repr=False
+    )
+    _status: Status = field(default=Status.FAILED, init=False, compare=False, repr=True)
+    _distance_to_proof: float = field(
+        default=math.inf, init=False, compare=False, repr=False
+    )
+
+    @property
+    def out_edges(self):
+        return self._out_edges
+
+    @out_edges.setter
+    def out_edges(self, out_edges: Iterable["Edge"]) -> Optional[List["Edge"]]:
+        if self.is_explored:
+            raise RuntimeError("Node is already explored.")
+
+        self._out_edges = list(out_edges)
+        self._recompute_status()
+        self._recompute_distance_to_proof()
+
+    @property
+    def is_explored(self) -> bool:
+        return self.out_edges is not None
+
+    @property
+    def status(self) -> Status:
+        return self._status
+
+    @status.setter
+    def status(self, s):
+        self._status = s
+
+    def _recompute_status(self):
+        if not self.is_explored or self.out_edges is None:
+            return
+
+        if any(edge.dst.status == Status.PROVED for edge in self.out_edges):
+            self._status = Status.PROVED
+        elif all(edge.dst.status == Status.FAILED for edge in self.out_edges):
+            self._status = Status.FAILED
+        else:
+            self._status = Status.OPEN
+
+        if self._status != Status.OPEN:
+            for edge in self.in_edges:
+                edge.src._recompute_status()
+
+    @property
+    def distance_to_proof(self) -> float:
+        return self._distance_to_proof
+
+    def _recompute_distance_to_proof(self):
+        if self.out_edges:
+            distance = min(edge.distance_to_proof() for edge in self.out_edges)
+        else:
+            distance = math.inf
+
+        if distance < self._distance_to_proof:
+            self._distance_to_proof = distance
+            for edge in self.in_edges:
+                edge.src._recompute_distance_to_proof()
+
+    @property
+    def is_terminal(self) -> bool:
+        return not self.is_explored or len(self.out_edges) == 0
+
+    def extract_proof(self) -> Optional[List[str]]:
+        if self.status != Status.PROVED:
+            return None
+        assert self.is_explored and self.out_edges is not None
+
+        proving_edge = min(
+            self.out_edges,
+            key=Edge.distance_to_proof,
+        )
+        child_proof = proving_edge.dst.extract_proof()
+        assert child_proof is not None
+        return [proving_edge.tactic] + child_proof
 
 
 @total_ordering
@@ -71,6 +159,7 @@ class InternalNode(Node):
     # Goal state this node represents. Two nodes are considered equal if their states
     # are equal; this is the only hashed field and must not be changed.
     state: TacticState = field(compare=True)
+    node_id: str = field(compare=False)
 
     # The sum of action logprobs along edges from the root to this node
     cumulative_logprob: float = field(compare=False, repr=False)
@@ -133,7 +222,8 @@ class InternalNode(Node):
         """
         Recursively update the status of the current node and its ancestors.
         """
-        assert self.is_explored and self.out_edges is not None
+        if not self.is_explored or self.out_edges is None:
+            return
 
         # If this node is proved or failed, nothing can change that
         if self._status != Status.OPEN:
@@ -162,6 +252,9 @@ class InternalNode(Node):
         """
         Recursively update the distance_to_proof of the current node and its ancestors.
         """
+        if not self.is_explored or self.out_edges is None:
+            return
+
         if self.out_edges:
             distance = min(edge.distance_to_proof() for edge in self.out_edges)
         else:
@@ -180,29 +273,26 @@ class InternalNode(Node):
     def __lt__(self, other: "InternalNode") -> bool:
         return self.priority > other.priority
 
-    def extract_proof(self) -> Optional[List["Edge"]]:
+    def extract_proof(self) -> Optional[List[str]]:
         """
-        Extract a proof of the current node as a sequence of edges.
+        Extract a proof of the current node as a sequence of tactics.
         """
         if self.status != Status.PROVED:
             return None
-        assert self.is_explored
+        assert self.is_explored and self.out_edges is not None
 
         proving_edge = min(
             self.out_edges,
             key=Edge.distance_to_proof,
         )
-
-        if proving_edge.dst.is_terminal:
-            # Base case: this edge is all that's required to finish the proof
-            assert isinstance(proving_edge.dst, ProofFinishedNode)
-            return [proving_edge]
+        
+        child_proof = proving_edge.dst.extract_proof()
+        assert child_proof is not None
+        
+        if isinstance(proving_edge.dst, ErrorNode):
+            return child_proof
         else:
-            # Recursive case: prove the child, then add this edge
-            assert isinstance(proving_edge.dst, InternalNode)
-            child_proof = proving_edge.dst.extract_proof()
-            assert child_proof
-            return [proving_edge, *child_proof]
+            return [proving_edge.tactic] + child_proof
 
     #########
     # Debug #
@@ -252,7 +342,7 @@ class Edge:
     """An edge in the search tree, representing a tactic."""
 
     tactic: str
-    src: InternalNode = field(repr=False)
+    src: Union[InternalNode, ErrorNode] = field(repr=False)
     dst: Node = field(repr=False)
 
     def distance_to_proof(self) -> float:

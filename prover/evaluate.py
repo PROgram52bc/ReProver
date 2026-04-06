@@ -149,6 +149,7 @@ def evaluate(
     repo_url: Optional[str] = None,
     commit: Optional[str] = None,
     repair_ckpt_path: Optional[str] = None,
+    repair_count: int = 1,
 ) -> float:
     set_logger(verbose)
 
@@ -175,6 +176,7 @@ def evaluate(
         debug=verbose,
         algorithm=algorithm,
         repair_ckpt_path=repair_ckpt_path,
+        repair_count=repair_count,
     )
     results = prover.search_unordered(repo, theorems, positions)
 
@@ -294,6 +296,12 @@ def main() -> None:
         help="Checkpoint of the error repair model.",
     )
     parser.add_argument(
+        "--repair-count",
+        type=int,
+        default=1,
+        help="Number of repair attempts to try if a tactic fails.",
+    )
+    parser.add_argument(
         "--dataset",
         type=str,
         choices=["leandojo", "minif2f", "veribench"],
@@ -353,6 +361,7 @@ def main() -> None:
         args.repo_url,
         args.commit,
         args.repair_ckpt_path,
+        args.repair_count,
     )
 
     logger.info(f"Pass@1: {pass_1}")

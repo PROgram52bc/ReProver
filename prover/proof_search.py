@@ -65,6 +65,7 @@ class BestFirstSearchProver:
         num_sampled_tactics: int,
         debug: bool,
         repair_gen: Optional[RepairGenerator] = None,
+        repair_count: int = 1,
     ) -> None:
         self.tac_gen = tac_gen
         self.tac_gen.initialize()
@@ -73,6 +74,7 @@ class BestFirstSearchProver:
         self.num_sampled_tactics = num_sampled_tactics
         self.debug = debug
         self.repair_gen = repair_gen
+        self.repair_count = repair_count
 
         self.num_expansions = 0
         self.actor_time = 0.0
@@ -118,6 +120,7 @@ class BestFirstSearchProver:
                 root_id = self._get_node_id(init_state)
                 self.root = InternalNode(
                     state=init_state,
+                    node_id=root_id,
                     cumulative_logprob=0.0,
                 )
                 logger.info(f"[TREE_NODE] ID: {root_id} | State: {init_state.pp}")
@@ -130,7 +133,7 @@ class BestFirstSearchProver:
                     pass
 
             if self.root.status == Status.PROVED:
-                proof = [e.tactic for e in self.root.extract_proof()]
+                proof = self.root.extract_proof()
             else:
                 proof = None
 
@@ -213,10 +216,10 @@ class BestFirstSearchProver:
         # new nodes are added to `self.nodes`, and edges are added to the result node.
         results = []
         for tactic, logprob in suggestions:
-            edges, finished = self._run_tactic(
+            edge, finished = self._run_tactic(
                 search_node, tactic, logprob, priority_queue
             )
-            results.extend(edges)
+            results.append(edge)
             if finished:
                 break
 
@@ -264,7 +267,7 @@ class BestFirstSearchProver:
         response = self.dojo.run_tac(node.state, tactic)
 
         # Comprehensive Logging
-        prefix = "[REPAIR] " if is_repair else ""
+        prefix = ""
         if isinstance(response, TacticState):
             logger.info(f"{prefix}Tactic succeeded: {tactic} | New State: {response.pp}")
         elif isinstance(response, ProofFinished):
@@ -274,7 +277,6 @@ class BestFirstSearchProver:
         else:
             logger.info(f"{prefix}Tactic result ({type(response).__name__}): {tactic}")
 
-        edges = []
         finished = isinstance(response, ProofFinished)
 
         if isinstance(response, LeanError):
@@ -284,27 +286,6 @@ class BestFirstSearchProver:
                 error=response.error,
                 theorem_name=self.theorem.full_name,
             )
-            # --- PHASE 3: TRIGGER REPAIR ---
-            if self.repair_gen and not is_repair:
-                repair_start = time.time()
-                fixed_tactic = self.repair_gen.repair(
-                    state=node.state.pp,
-                    bad_tactic=tactic,
-                    error_msg=response.error,
-                )
-                if fixed_tactic and fixed_tactic != tactic:
-                    logger.info(f"Fixed tactic: {tactic} -> {fixed_tactic}")
-                    # Evaluate the fixed tactic and add it to the priority queue
-                    # Apply a small penalty to the repaired tactic's priority
-                    repair_edges, repair_finished = self._run_tactic(
-                        node, fixed_tactic, logprob - 0.5, priority_queue, is_repair=True
-                    )
-                    edges.extend(repair_edges)
-                    finished = finished or repair_finished
-                
-                # Exclude the entire repair phase (LLM + recursive execution) from search timeout
-                self.repair_time += time.time() - repair_start
-            # --------------------------------
 
         elapsed = time.time() - t0
         self.environment_time += elapsed
@@ -315,57 +296,124 @@ class BestFirstSearchProver:
         except KeyError:
             # Build a new node
             if isinstance(response, ProofFinished):
-                result_node = ProofFinishedNode(response)
+                dst_id = f"FINISH_{self.next_edge_id}"
+                result_node = ProofFinishedNode(inner=response, node_id=dst_id)
+                logger.info(f"[TREE_NODE] ID: {dst_id} | State: PROOF_FINISHED")
             elif type(response) in (
                 LeanError,
                 DojoTacticTimeoutError,
                 ProofGivenUp,
             ):
-                result_node = ErrorNode(response)
+                dst_id = f"ERROR_{self.next_edge_id}"
+                result_node = ErrorNode(inner=response, node_id=dst_id)
+                logger.info(f"[TREE_NODE] ID: {dst_id} | State: ERROR: {response.error if hasattr(response, 'error') else response}")
             else:
                 assert isinstance(response, TacticState)
+                node_id = self._get_node_id(response)
                 result_node = InternalNode(
                     state=response,
+                    node_id=node_id,
                     cumulative_logprob=logprob + node.cumulative_logprob,
                 )
                 # Log the new node for plotting
-                node_id = self._get_node_id(response)
                 logger.info(f"[TREE_NODE] ID: {node_id} | State: {response.pp}")
 
             if result_node.status == Status.OPEN:  # Don't search proved/failed nodes
                 priority_queue.put_nowait((-result_node.priority, result_node))
 
-
         # Record the new node and add it to the search queue.
         self.nodes[response] = result_node
 
         # Build an edge connecting these nodes.
-        # Will be added to the source node externally.
         edge = Edge(tactic=tactic, src=node, dst=result_node)
         
         # Log the edge for plotting
-        src_id = self._get_node_id(node.state)
-        # For terminal nodes, we assign a special ID string if it's an error/finish
-        if isinstance(response, ProofFinished):
-            dst_id = f"FINISH_{self.next_edge_id}"
-            logger.info(f"[TREE_NODE] ID: {dst_id} | State: PROOF_FINISHED")
-        elif type(response) in (LeanError, DojoTacticTimeoutError, ProofGivenUp):
-            dst_id = f"ERROR_{self.next_edge_id}"
-            logger.info(f"[TREE_NODE] ID: {dst_id} | State: ERROR: {response.error if hasattr(response, 'error') else response}")
-        else:
-            dst_id = self._get_node_id(response)
+        src_id = node.node_id
+        dst_id = result_node.node_id
             
         edge_id = self.next_edge_id
         self.next_edge_id += 1
-        
         logger.info(f"[TREE_EDGE] ID: {edge_id} | Src: {src_id} | Dst: {dst_id} | Tactic: {tactic} | Type: {'Repair' if is_repair else 'Generator'}")
 
-        if isinstance(result_node, InternalNode):
+        if isinstance(result_node, (InternalNode, ErrorNode)):
             result_node.in_edges.append(edge)
         
-        edges.append(edge)
+        # --- PHASE 3: TRIGGER REPAIR CHAIN ---
+        if isinstance(response, LeanError) and self.repair_gen and not is_repair:
+            self._run_repair(node, result_node, tactic, response.error, logprob, priority_queue, depth=0)
+        # --------------------------------
 
-        return edges, finished
+        return edge, finished
+
+    def _run_repair(self, original_node, error_node, bad_tactic, error_msg, logprob, priority_queue, depth):
+        if depth >= self.repair_count:
+            return
+            
+        repair_start = time.time()
+        fixed_tactic = self.repair_gen.repair(original_node.state.pp, bad_tactic, error_msg)
+        
+        if not fixed_tactic or fixed_tactic == bad_tactic:
+            self.repair_time += time.time() - repair_start
+            return
+            
+        # Run the fixed tactic from the ORIGINAL node state
+        t0 = time.time()
+        response = self.dojo.run_tac(original_node.state, fixed_tactic)
+        self.repair_time += (time.time() - t0) + (time.time() - repair_start)
+        
+        # Comprehensive Logging for Repair
+        prefix = f"[REPAIR-{depth+1}] "
+        if isinstance(response, TacticState):
+            logger.info(f"{prefix}Tactic succeeded: {fixed_tactic} | New State: {response.pp}")
+        elif isinstance(response, ProofFinished):
+            logger.info(f"{prefix}Tactic finished proof: {fixed_tactic}")
+        elif isinstance(response, LeanError):
+            logger.info(f"{prefix}Tactic failed: {fixed_tactic} | Error: {response.error}")
+
+        try:
+            result_node = self.nodes[response]
+        except KeyError:
+            if isinstance(response, ProofFinished):
+                dst_id = f"FINISH_{self.next_edge_id}"
+                result_node = ProofFinishedNode(inner=response, node_id=dst_id)
+                logger.info(f"[TREE_NODE] ID: {dst_id} | State: PROOF_FINISHED")
+            elif type(response) in (LeanError, DojoTacticTimeoutError, ProofGivenUp):
+                dst_id = f"ERROR_{self.next_edge_id}"
+                result_node = ErrorNode(inner=response, node_id=dst_id)
+                logger.info(f"[TREE_NODE] ID: {dst_id} | State: ERROR: {response.error if hasattr(response, 'error') else response}")
+            else:
+                # Apply a logprob penalty for repaired tactics
+                node_id = self._get_node_id(response)
+                result_node = InternalNode(
+                    state=response, 
+                    node_id=node_id,
+                    cumulative_logprob=logprob + original_node.cumulative_logprob - 0.5
+                )
+                logger.info(f"[TREE_NODE] ID: {node_id} | State: {response.pp}")
+
+            if result_node.status == Status.OPEN:
+                priority_queue.put_nowait((-result_node.priority, result_node))
+        
+        self.nodes[response] = result_node
+        
+        # Link the repair as a child of the ERROR node
+        edge = Edge(tactic=fixed_tactic, src=error_node, dst=result_node)
+        error_node.out_edges = [edge]
+        
+        # Log edge for plotting
+        src_id = error_node.node_id
+        dst_id = result_node.node_id
+            
+        edge_id = self.next_edge_id
+        self.next_edge_id += 1
+        logger.info(f"[TREE_EDGE] ID: {edge_id} | Src: {src_id} | Dst: {dst_id} | Tactic: {fixed_tactic} | Type: Repair")
+
+        if isinstance(result_node, (InternalNode, ErrorNode)):
+            result_node.in_edges.append(edge)
+            
+        if isinstance(response, LeanError):
+            # Recursively repair the new error
+            self._run_repair(original_node, result_node, fixed_tactic, response.error, logprob - 0.5, priority_queue, depth + 1)
 
     #########
     # DEBUG #
@@ -407,6 +455,7 @@ class ProverActor:
         repair_ckpt_path: Optional[str] = None,
         max_inp_seq_len: int = 2048,
         max_oup_seq_len: int = 512,
+        repair_count: int = 1,
     ) -> None:
         device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         repair_gen = RepairGenerator(
@@ -424,6 +473,7 @@ class ProverActor:
                 num_sampled_tactics,
                 debug,
                 repair_gen=repair_gen,
+                repair_count=repair_count,
             )
         elif algorithm == "bfs":
             from prover.bfs_search import BreadthFirstSearchProver
@@ -515,6 +565,7 @@ class DistributedProver:
         debug: Optional[bool] = False,
         algorithm: str = "best",
         repair_ckpt_path: Optional[str] = None,
+        repair_count: int = 1,
     ) -> None:
         if gen_ckpt_path is None:
             assert tactic and not indexed_corpus_path
@@ -558,7 +609,7 @@ class DistributedProver:
                     max_oup_seq_len=max_oup_seq_len,
                 ) if repair_ckpt_path else None
                 self.prover = BestFirstSearchProver(
-                    tac_gen, timeout, max_expansions, num_sampled_tactics, debug, repair_gen=repair_gen
+                    tac_gen, timeout, max_expansions, num_sampled_tactics, debug, repair_gen=repair_gen, repair_count=repair_count
                 )
             elif algorithm == "bfs":
                 from prover.bfs_search import BreadthFirstSearchProver
@@ -592,6 +643,7 @@ class DistributedProver:
                     repair_ckpt_path=repair_ckpt_path,
                     max_inp_seq_len=max_inp_seq_len,
                     max_oup_seq_len=max_oup_seq_len,
+                    repair_count=repair_count,
                 )
                 for _ in range(num_workers)
             ]
@@ -608,6 +660,7 @@ class DistributedProver:
                     repair_ckpt_path=repair_ckpt_path,
                     max_inp_seq_len=max_inp_seq_len,
                     max_oup_seq_len=max_oup_seq_len,
+                    repair_count=repair_count,
                 )
                 for _ in range(num_workers)
             ]
