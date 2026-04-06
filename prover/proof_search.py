@@ -79,6 +79,13 @@ class BestFirstSearchProver:
         self.environment_time = 0.0
         self.total_time = None
 
+    def _get_node_id(self, state) -> str:
+        state_str = state.pp if isinstance(state, TacticState) else str(state)
+        if state_str not in self.state_to_id:
+            self.state_to_id[state_str] = str(self.next_node_id)
+            self.next_node_id += 1
+        return self.state_to_id[state_str]
+
     def search(
         self, repo: LeanGitRepo, thm: Theorem, pos: Pos
     ) -> Optional[SearchResult]:
@@ -91,6 +98,11 @@ class BestFirstSearchProver:
         self.environment_time = 0.0
         self.repair_time = 0.0
         self.num_expansions = 0
+        
+        # ID management for plotting
+        self.state_to_id = {}
+        self.next_node_id = 0
+        self.next_edge_id = 0
 
         if isinstance(self.tac_gen, FixedTacticGenerator):
             imps = [self.tac_gen.module]
@@ -103,10 +115,12 @@ class BestFirstSearchProver:
                 init_state,
             ):
                 self.dojo = dojo
+                root_id = self._get_node_id(init_state)
                 self.root = InternalNode(
                     state=init_state,
                     cumulative_logprob=0.0,
                 )
+                logger.info(f"[TREE_NODE] ID: {root_id} | State: {init_state.pp}")
                 self.nodes = {init_state: self.root}
 
                 try:
@@ -314,6 +328,9 @@ class BestFirstSearchProver:
                     state=response,
                     cumulative_logprob=logprob + node.cumulative_logprob,
                 )
+                # Log the new node for plotting
+                node_id = self._get_node_id(response)
+                logger.info(f"[TREE_NODE] ID: {node_id} | State: {response.pp}")
 
             if result_node.status == Status.OPEN:  # Don't search proved/failed nodes
                 priority_queue.put_nowait((-result_node.priority, result_node))
@@ -325,6 +342,23 @@ class BestFirstSearchProver:
         # Build an edge connecting these nodes.
         # Will be added to the source node externally.
         edge = Edge(tactic=tactic, src=node, dst=result_node)
+        
+        # Log the edge for plotting
+        src_id = self._get_node_id(node.state)
+        # For terminal nodes, we assign a special ID string if it's an error/finish
+        if isinstance(response, ProofFinished):
+            dst_id = f"FINISH_{self.next_edge_id}"
+            logger.info(f"[TREE_NODE] ID: {dst_id} | State: PROOF_FINISHED")
+        elif type(response) in (LeanError, DojoTacticTimeoutError, ProofGivenUp):
+            dst_id = f"ERROR_{self.next_edge_id}"
+            logger.info(f"[TREE_NODE] ID: {dst_id} | State: ERROR: {response.error if hasattr(response, 'error') else response}")
+        else:
+            dst_id = self._get_node_id(response)
+            
+        edge_id = self.next_edge_id
+        self.next_edge_id += 1
+        
+        logger.info(f"[TREE_EDGE] ID: {edge_id} | Src: {src_id} | Dst: {dst_id} | Tactic: {tactic} | Type: {'Repair' if is_repair else 'Generator'}")
 
         if isinstance(result_node, InternalNode):
             result_node.in_edges.append(edge)
