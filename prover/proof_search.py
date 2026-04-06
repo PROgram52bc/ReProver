@@ -22,7 +22,7 @@ from lean_dojo import (
 )
 from loguru import logger
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 from ray.util.actor_pool import ActorPool
 from vllm import AsyncLLMEngine, AsyncEngineArgs, SamplingParams, RequestOutput
 
@@ -294,7 +294,9 @@ class BestFirstSearchProver:
             )
 
         try:
-            # If we've seen this response before, use the existing node
+            # Terminal nodes are NOT cached to ensure unique repair chains and path tracking.
+            if not isinstance(response, TacticState):
+                raise KeyError
             result_node = self.nodes[response]
         except KeyError:
             # Build a new node
@@ -320,12 +322,13 @@ class BestFirstSearchProver:
                 )
                 # Log the new node for plotting
                 logger.info(f"[TREE_NODE] ID: {node_id} | State: {response.pp}")
+                self.nodes[response] = result_node
 
             if result_node.status == Status.OPEN:  # Don't search proved/failed nodes
                 priority_queue.put_nowait((-result_node.priority, result_node))
 
         # Record the new node and add it to the search queue.
-        self.nodes[response] = result_node
+        # (Already done for TacticState above)
 
         # Build an edge connecting these nodes.
         edge = Edge(tactic=tactic, src=node, dst=result_node)
@@ -378,19 +381,19 @@ class BestFirstSearchProver:
         elif isinstance(response, LeanError):
             logger.info(f"{prefix}Tactic failed: {fixed_tactic} | Error: {response.error}")
 
-        try:
-            result_node = self.nodes[response]
-        except KeyError:
-            if isinstance(response, ProofFinished):
-                dst_id = f"FINISH_{self.next_edge_id}"
-                result_node = ProofFinishedNode(inner=response, node_id=dst_id)
-                logger.info(f"[TREE_NODE] ID: {dst_id} | State: PROOF_FINISHED")
-            elif type(response) in (LeanError, DojoTacticTimeoutError, ProofGivenUp):
-                dst_id = f"ERROR_{self.next_edge_id}"
-                result_node = ErrorNode(inner=response, node_id=dst_id)
-                logger.info(f"[TREE_NODE] ID: {dst_id} | State: ERROR: {response.error if hasattr(response, 'error') else response}")
-            else:
-                # Apply a logprob penalty for repaired tactics
+        if isinstance(response, ProofFinished):
+            dst_id = f"FINISH_{self.next_edge_id}"
+            result_node = ProofFinishedNode(inner=response, node_id=dst_id)
+            logger.info(f"[TREE_NODE] ID: {dst_id} | State: PROOF_FINISHED")
+        elif type(response) in (LeanError, DojoTacticTimeoutError, ProofGivenUp):
+            dst_id = f"ERROR_{self.next_edge_id}"
+            result_node = ErrorNode(inner=response, node_id=dst_id)
+            logger.info(f"[TREE_NODE] ID: {dst_id} | State: ERROR: {response.error if hasattr(response, 'error') else response}")
+        else:
+            # For successful repairs, we check if we've seen this state before
+            try:
+                result_node = self.nodes[response]
+            except KeyError:
                 node_id = self._get_node_id(response)
                 result_node = InternalNode(
                     state=response, 
@@ -398,11 +401,10 @@ class BestFirstSearchProver:
                     cumulative_logprob=logprob + original_node.cumulative_logprob - 0.5
                 )
                 logger.info(f"[TREE_NODE] ID: {node_id} | State: {response.pp}")
+                self.nodes[response] = result_node
 
             if result_node.status == Status.OPEN:
                 priority_queue.put_nowait((-result_node.priority, result_node))
-        
-        self.nodes[response] = result_node
         
         # Link the repair as a child of the ERROR node
         edge = Edge(tactic=fixed_tactic, src=error_node, dst=result_node)
