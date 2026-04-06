@@ -365,6 +365,7 @@ def main() -> None:
     )
 
     logger.info(f"Pass@1: {pass_1}")
+    logger.info(f"Configuration used: {args}")
 
 
 if __name__ == "__main__":
