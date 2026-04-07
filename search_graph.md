@@ -6,18 +6,21 @@ This guide explains how to identify interesting theorems and visualize the prove
 Before visualizing, you need to identify which theorems are worth analyzing—specifically those where the baseline and repair runs produced different results.
 
 ### Using `compare_outcomes.py`
-Use this script to compare two global log files (e.g., your baseline run and your gAPRIL run).
+Use this script to compare any number of global log files side-by-side.
 
 ```bash
-python compare_outcomes.py baseline.log repair.log --output comparison.csv
+# Compare baseline against multiple repair experiments
+python compare_outcomes.py baseline.log repair_v1.log repair_v2.log --output comparison.csv
 ```
 
 ### Understanding the Output
-The script produces a **COMPARISON SUMMARY** in the terminal:
-- **Gains**: Theorems that failed in Log 1 but were solved in Log 2. These represent the "success stories" of your repair model.
-- **Regressions**: Theorems that were solved in Log 1 but failed in Log 2. These often indicate cases where the repair model's overhead caused a timeout or led the search into a dead end.
+The script produces a **COMPARISON SUMMARY** in the terminal showing the "Proved" count for every log file provided.
 
-The `comparison.csv` file provides a theorem-by-theorem breakdown, allowing you to pick a specific theorem name (e.g., `mathd_algebra_31`) for deep-dive visualization.
+The `comparison.csv` file provides a theorem-by-theorem breakdown where:
+- **Column 1**: Theorem Name
+- **Subsequent Columns**: The terminal status (`Proved`, `Failed`, `Timeout`, or `N/A`) for that theorem in each respective log file.
+
+You can use this table to quickly find **Gains** (theorems proved in a repair log but not in the baseline) or **Regressions** for deep-dive visualization.
 
 ## 2. Generating Detailed Logs for a Theorem
 Once you have identified a theorem of interest, you need to produce a clean log file containing only the search steps for that specific theorem.
