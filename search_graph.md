@@ -38,15 +38,16 @@ python prover/evaluate.py \
 ### Option B: Manual Extraction
 If you don't want to re-run the search, you can manually extract the relevant lines from an existing global log file. Search for the line `Proving Theorem(...)` for your target theorem and copy everything until the next `Proving Theorem` line or the `SearchResult` summary.
 
-**Example using `grep` to find the range:**
+**Example using `grep` to find the exact range:**
 ```bash
-# 1. Find the starting line number for your theorem
-grep -n "Proving Theorem.*full_name='mathd_algebra_31'" global.log
+# 1. Find the start of your theorem AND the start of the next one
+grep -n "Proving Theorem" global.log | grep -A 1 "mathd_algebra_31"
 
-# 2. Find the line numbers of all theorems to see where the next one starts
-grep -n "Proving Theorem" global.log
+# This will output something like:
+# 500:Proving Theorem(..., full_name='mathd_algebra_31')
+# 1200:Proving Theorem(..., full_name='mathd_algebra_32')
 
-# 3. Extract the range (e.g., if your theorem starts at 500 and the next starts at 1200)
+# 2. Extract the range (using the numbers from above)
 sed -n '500,1199p' global.log > single_thm.log
 ```
 
