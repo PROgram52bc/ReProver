@@ -35,7 +35,7 @@ def parse_tree_logs(log_file):
     return nodes, edges
 
 def generate_mermaid(nodes, edges):
-    mermaid = ["graph TD"]
+    mermaid = ["graph LR"]
     
     # Define nodes with truncated labels for readability
     for nid, state in nodes.items():
