@@ -68,7 +68,13 @@ The MiniF2F dataset must be transformed into standard JSON arrays before running
    ```bash
    python scripts/setup_minif2f_example.py
    ```
-   This script downloads `cat-searcher/minif2f-lean4` from Hugging Face and saves `val.json` and `test.json` to the `data/` directory in the required format.
+   This script downloads `cat-searcher/minif2f-lean4` from Hugging Face and saves `val.json` and `test.json` to the `data/` directory in the required format. It also regenerates `MiniF2FGen.lean` so Lake builds every problem file (LeanDojo needs per-file `*.ast.json` under `.lake/build/ir/`). The bundled Lean project in `data/minif2f_reprover/project` is pinned to **Lean 4.12** and **mathlib v4.12.0** (with a committed `lake-manifest.json`) so the stock `lean_dojo` `ExtractData.lean` typechecks; newer Lean releases (≈4.29+) break that extractor.
+
+   After the script runs, build the project once, commit inside `data/minif2f_reprover/project` so `val.json`/`test.json` match the new git hash, re-run the setup script to refresh those JSON files, then remove the old LeanDojo trace cache for the previous commit if you already traced without the imports (e.g. `rm -rf ~/.cache/lean_dojo/gitpython-project-<old-sha>`):
+
+   ```bash
+   cd data/minif2f_reprover/project && lake build
+   ```
 
 2. **Evaluate**:
    ```bash

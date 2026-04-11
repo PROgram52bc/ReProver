@@ -11,10 +11,17 @@ def main() -> None:
     args = parser.parse_args()
     logger.info(args)
 
+    json_paths = set(glob(f"{args.data_path}/*.json"))
+    json_paths.update(glob(f"{args.data_path}/*/*/*.json"))
+
     url_commits = set()
-    for path in glob(f"{args.data_path}/*/*/*.json"):
+    for path in sorted(json_paths):
         data = json.load(open(path))
+        if not isinstance(data, list):
+            continue
         for ex in data:
+            if not isinstance(ex, dict) or "url" not in ex or "commit" not in ex:
+                continue
             url_commits.add((ex["url"], ex["commit"]))
 
     repos = set()

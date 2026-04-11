@@ -1,6 +1,13 @@
 """Script for evaluating the prover on theorems extracted by LeanDojo.
 """
 
+import sys
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
 import os
 from datetime import datetime
 
@@ -13,10 +20,51 @@ import argparse
 from loguru import logger
 from lean_dojo import Theorem
 from typing import List, Tuple, Optional
-from lean_dojo import LeanGitRepo, Theorem, Pos, is_available_in_cache
+from lean_dojo import LeanGitRepo, Theorem, Pos, get_traced_repo_path
 
 from common import set_logger
 from prover.proof_search import Status, DistributedProver
+
+
+def _patch_leandojo_extractdata_tsyntax() -> None:
+    """Align stock LeanDojo ``ExtractData.lean`` with Lean 4.12+: ``parseHeader`` yields ``Syntax``, but ``getImports`` expects ``TSyntax``."""
+    import lean_dojo
+
+    path = Path(lean_dojo.__file__).resolve().parent / "data_extraction" / "ExtractData.lean"
+    if not path.is_file():
+        return
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return
+    if "getImports (⟨header⟩ : TSyntax `Lean.Parser.Module.header)" in text:
+        return
+    old = "(← getImports header)"
+    if old not in text:
+        return
+    new = "(← getImports (⟨header⟩ : TSyntax `Lean.Parser.Module.header))"
+    try:
+        path.write_text(text.replace(old, new, 1), encoding="utf-8")
+    except OSError as e:
+        logger.warning(f"Could not patch {path} ({e}); LeanDojo tracing may fail on Lean 4.12+.")
+        return
+    logger.info(
+        f"Patched LeanDojo ExtractData.lean for TSyntax/header typing (Lean 4.12+): {path}"
+    )
+
+
+def _elan_toolchain_from_local_repo(url: str) -> Optional[str]:
+    """Return toolchain spec from ``lean-toolchain`` if ``url`` is a local checkout."""
+    if url.startswith(("http://", "https://", "git@")):
+        return None
+    root = Path(url)
+    if not root.is_dir():
+        return None
+    lt = root / "lean-toolchain"
+    if not lt.is_file():
+        return None
+    line = lt.read_text(encoding="utf-8").strip().splitlines()[0].strip()
+    return line or None
 
 
 def _get_theorems(
@@ -41,34 +89,65 @@ def _get_theorems(
         )
     else:
         if dataset == "minif2f":
-            repo_url = repo_url or "https://github.com/leanprover-community/mathlib4"
-            commit = commit or "master"
+            default_repo_url = repo_url or "https://github.com/leanprover-community/mathlib4"
+            default_commit = commit or "master"
         elif dataset == "veribench":
-            repo_url = repo_url or "https://github.com/shishir-h/VeriBench"
-            commit = commit or "main"
+            default_repo_url = repo_url or "https://github.com/shishir-h/VeriBench"
+            default_commit = commit or "main"
         else:
-            assert repo_url is not None and commit is not None, "repo_url and commit must be provided for custom datasets."
-        
-        repo = LeanGitRepo(repo_url, commit)
+            assert repo_url is not None and commit is not None, (
+                "repo_url and commit must be provided for custom datasets."
+            )
+            default_repo_url = repo_url
+            default_commit = commit
+
+        default_repo = LeanGitRepo(default_repo_url, default_commit)
         data = json.load(open(os.path.join(data_path, f"{split}.json")))
         theorems = []
         positions = []
         for t in data:
+            if "file_path" not in t or "full_name" not in t:
+                raise ValueError(
+                    "Dataset JSON must include 'file_path' and 'full_name' for each problem. "
+                    "For MiniF2F, run: python scripts/setup_minif2f_example.py"
+                )
             if file_path is not None and t["file_path"] != file_path:
                 continue
             if full_name is not None and t["full_name"] != full_name:
                 continue
-            theorems.append(Theorem(repo, t["file_path"], t["full_name"]))
+            if name_filter is not None and not hashlib.md5(
+                t["full_name"].encode()
+            ).hexdigest().startswith(name_filter):
+                continue
+            if "url" in t and "commit" in t:
+                row_repo = LeanGitRepo(t["url"], t["commit"])
+            else:
+                row_repo = default_repo
+            theorems.append(Theorem(row_repo, t["file_path"], t["full_name"]))
             if "start" in t:
                 positions.append(Pos(*t["start"]))
             else:
                 positions.append(Pos(1, 1))
 
+        assert len(theorems) > 0, f"No theorems loaded from {data_path}/{split}.json"
+        if num_theorems is not None:
+            theorems = theorems[:num_theorems]
+            positions = positions[:num_theorems]
+        logger.info(f"{len(theorems)} theorems loaded from {data_path}")
+        repo = theorems[0].repo
+
     all_repos = {thm.repo for thm in theorems}
+    _patch_leandojo_extractdata_tsyntax()
     for r in all_repos:
-        assert is_available_in_cache(
-            r
-        ), f"{r} has not been traced yet. Please use LeanDojo to trace it so that it's available in the cache."
+        # LeanDojo's tracer runs bare `lean` (not `lake env lean`) for --print-prefix; elan
+        # would otherwise use the user's default toolchain (often 4.30+) and break
+        # ExtractData.lean against a project pinned to an older Lean (e.g. MiniF2F @ 4.29).
+        tc = _elan_toolchain_from_local_repo(str(r.url))
+        if tc:
+            os.environ["ELAN_TOOLCHAIN"] = tc
+            logger.info(f"Set ELAN_TOOLCHAIN={tc} for tracing {r}")
+        # Ensures ~/.cache/lean_dojo has a trace; traces on first use (can take a while).
+        get_traced_repo_path(r)
 
     return repo, theorems, positions
 
