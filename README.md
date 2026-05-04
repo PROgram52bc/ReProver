@@ -126,6 +126,17 @@ python prover/evaluate.py \
     --repair-count 2 \
     --num-sampled-tactics 5 \
     --num-theorems 50
+
+### Fair Comparison with Wall-Timeout
+To ensure a fair comparison between models (e.g., with vs. without repair) that accounts for all overhead (including LLM generation and repair time), use the `--wall-timeout` option. This sets a hard wall-clock limit per theorem and globally for the entire run.
+
+```bash
+python prover/evaluate.py \
+    --data-path data/leandojo_benchmark_4/random \
+    --gen_ckpt_path kaiyuy/leandojo-lean4-tacgen-byt5-small \
+    --wall-timeout 600 \
+    --num-theorems 100
+```
 ```
 
 ## 8. Training with APRIL Dataset

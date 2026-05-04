@@ -47,9 +47,15 @@ def _get_theorems(
             repo_url = repo_url or "https://github.com/shishir-h/VeriBench"
             commit = commit or "main"
         else:
-            assert repo_url is not None and commit is not None, "repo_url and commit must be provided for custom datasets."
-        
-        repo = LeanGitRepo(repo_url, commit)
+            assert repo_url is not None and commit is not None, (
+                "repo_url and commit must be provided for custom datasets."
+            )
+            default_repo_url = repo_url
+            default_commit = commit
+
+        import shutil
+        shutil.rmtree("project", ignore_errors=True)
+        default_repo = LeanGitRepo(default_repo_url, default_commit)
         data = json.load(open(os.path.join(data_path, f"{split}.json")))
         theorems = []
         positions = []
@@ -85,6 +91,8 @@ def _get_theorems_from_files(
     theorems = []
     positions = []
 
+    import shutil
+    shutil.rmtree("project", ignore_errors=True)
     for t in data:
         if file_path is not None and t["file_path"] != file_path:
             continue
@@ -150,6 +158,7 @@ def evaluate(
     commit: Optional[str] = None,
     repair_ckpt_path: Optional[str] = None,
     repair_count: int = 1,
+    wall_timeout: Optional[int] = None,
 ) -> float:
     set_logger(verbose)
 
@@ -177,8 +186,9 @@ def evaluate(
         algorithm=algorithm,
         repair_ckpt_path=repair_ckpt_path,
         repair_count=repair_count,
+        wall_timeout=wall_timeout,
     )
-    results = prover.search_unordered(repo, theorems, positions)
+    results = prover.search_unordered(repo, theorems, positions, wall_timeout=wall_timeout)
 
     # Calculate the result statistics.
     num_proved = num_failed = num_discarded = 0
@@ -211,12 +221,6 @@ def evaluate(
 
 
 def main() -> None:
-
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    os.environ["REPROVER_LOG_FILE"] = f"logs/trace_{timestamp}.log"
-    # Ensure the directory exists
-    os.makedirs("logs", exist_ok=True)
-
     parser = argparse.ArgumentParser(
         description="Script for evaluating the prover on theorems extracted by LeanDojo."
     )
@@ -324,7 +328,27 @@ def main() -> None:
     parser.add_argument(
         "--verbose", action="store_true", help="Set the logging level to DEBUG."
     )
+    parser.add_argument(
+        "--wall-timeout",
+        type=int,
+        default=None,
+        help="Maximum number of seconds the entire evaluation can take.",
+    )
+    parser.add_argument(
+        "--log-file",
+        type=str,
+        default=None,
+        help="Path to the log file.",
+    )
     args = parser.parse_args()
+
+    # Set up logging
+    if args.log_file:
+        os.environ["REPROVER_LOG_FILE"] = args.log_file
+    else:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        os.environ["REPROVER_LOG_FILE"] = f"logs/trace_{timestamp}.log"
+    os.makedirs("logs", exist_ok=True)
 
     assert args.gen_ckpt_path or args.tactic
     assert args.num_gpus <= args.num_workers
@@ -362,6 +386,7 @@ def main() -> None:
         args.commit,
         args.repair_ckpt_path,
         args.repair_count,
+        args.wall_timeout,
     )
 
     logger.info(f"Pass@1: {pass_1}")

@@ -38,6 +38,7 @@ class BreadthFirstSearchProver:
         max_expansions: Optional[int],
         num_sampled_tactics: int,
         debug: bool,
+        wall_timeout: Optional[int] = None,
     ) -> None:
         self.tac_gen = tac_gen
         self.tac_gen.initialize()
@@ -45,6 +46,7 @@ class BreadthFirstSearchProver:
         self.max_expansions = max_expansions
         self.num_sampled_tactics = num_sampled_tactics
         self.debug = debug
+        self.wall_timeout = wall_timeout
 
         self.num_expansions = 0
         self.actor_time = 0.0
@@ -126,6 +128,8 @@ class BreadthFirstSearchProver:
 
             self.total_time = time.time() - time_start
             if self.total_time > self.timeout or (
+                self.wall_timeout is not None and self.total_time > self.wall_timeout
+            ) or (
                 self.max_expansions is not None
                 and self.num_expansions > self.max_expansions
             ):
