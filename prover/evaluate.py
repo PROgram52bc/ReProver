@@ -42,10 +42,13 @@ def _get_theorems(
     else:
         if dataset == "minif2f":
             repo_url = repo_url or "https://github.com/leanprover-community/mathlib4"
-            commit = commit or "master"
-        elif dataset == "veribench":
-            repo_url = repo_url or "https://github.com/shishir-h/VeriBench"
             commit = commit or "main"
+        elif dataset == "veribench":
+            default_repo_url = repo_url or "https://github.com/shishir-h/VeriBench"
+            default_commit = commit or "main"
+        elif dataset == "lean_workbook":
+            default_repo_url = repo_url or str((_REPO_ROOT / "data/lean_workbook_reprover/project").resolve())
+            default_commit = commit or "main"
         else:
             assert repo_url is not None and commit is not None, (
                 "repo_url and commit must be provided for custom datasets."
@@ -308,7 +311,7 @@ def main() -> None:
     parser.add_argument(
         "--dataset",
         type=str,
-        choices=["leandojo", "minif2f", "veribench"],
+        choices=["leandojo", "minif2f", "veribench", "lean_workbook"],
         default="leandojo",
         help="The dataset to evaluate on.",
     )
