@@ -1,0 +1,1108 @@
+[
+  {
+    "id": "lean_workbook_plus_317",
+    "file_path": "LeanWorkbookGen/test/lw_test_0000.lean",
+    "full_name": "LW_test_0000.lean_workbook_plus_317",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Given $j_1 = -2014$, prove by induction that $j_n = -1007 * 2^n$ for all $n \\in \\mathbb{Z}_+$.",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_322",
+    "file_path": "LeanWorkbookGen/test/lw_test_0001.lean",
+    "full_name": "LW_test_0001.lean_workbook_plus_322",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "If $a=5$ , $b=3$ and $c=7$ we get $\\frac{a+b}{a+b+c}+\\frac{b+c}{b+c+4a}+\\frac{c+a}{c+a+16b}=\\frac{16}{15}$ .",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_325",
+    "file_path": "LeanWorkbookGen/test/lw_test_0002.lean",
+    "full_name": "LW_test_0002.lean_workbook_plus_325",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove that for non-negative numbers $a, b, c, d, e, f$, the following identity holds: \\(3/2(ad-bc)^2 + 3/2(be-cd)^2 + 3/2(ac-de)^2 + (a-b)^2ab + (b-c)^2bc + (c-d)^2cd + (d-e)^2de + (e-a)^2ea + 5/2(ab+bc+cd+de+ea-ac-bd-ec-ad-be)^2 + (e-b)^2be + (d-a)^2ad + (c-e)^2ec + (b-d)^2bd + (a-c)^2ac + 3/2(bd-ea)^2 + 3/2(ec-ab)^2\\).",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_325",
+    "file_path": "LeanWorkbookGen/test/lw_test_0003.lean",
+    "full_name": "LW_test_0003.lean_workbook_plus_325",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove that for non-negative numbers $a, b, c, d, e, f$, the following identity holds: \\(3/2(ad-bc)^2 + 3/2(be-cd)^2 + 3/2(ac-de)^2 + (a-b)^2ab + (b-c)^2bc + (c-d)^2cd + (d-e)^2de + (e-a)^2ea + 5/2(ab+bc+cd+de+ea-ac-bd-ec-ad-be)^2 + (e-b)^2be + (d-a)^2ad + (c-e)^2ec + (b-d)^2bd + (a-c)^2ac + 3/2(bd-ea)^2 + 3/2(ec-ab)^2\\).",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_333",
+    "file_path": "LeanWorkbookGen/test/lw_test_0004.lean",
+    "full_name": "LW_test_0004.lean_workbook_plus_333",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "If $f(c)=0=c(c+1)$ then $c=0$ or $c=-1$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_345",
+    "file_path": "LeanWorkbookGen/test/lw_test_0005.lean",
+    "full_name": "LW_test_0005.lean_workbook_plus_345",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Express $4$ and $128$ as $2^2$ and $2^7$.",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_355",
+    "file_path": "LeanWorkbookGen/test/lw_test_0007.lean",
+    "full_name": "LW_test_0007.lean_workbook_plus_355",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Let $a,b,c>0$ . Show that $(a+b+c)\\left( \\frac{1}{a}+\\frac{1}{b} + \\frac{1}{c}\\right) \\geq 9$",
+    "informal_proof": "0",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_355",
+    "file_path": "LeanWorkbookGen/test/lw_test_0008.lean",
+    "full_name": "LW_test_0008.lean_workbook_plus_355",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Let $a,b,c>0$ . Show that $(a+b+c)\\left( \\frac{1}{a}+\\frac{1}{b} + \\frac{1}{c}\\right) \\geq 9$",
+    "informal_proof": "0",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_356",
+    "file_path": "LeanWorkbookGen/test/lw_test_0009.lean",
+    "full_name": "LW_test_0009.lean_workbook_plus_356",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "$n=2\\implies a={9-2n\\over 6n}={5\\over 12}\\implies x=n+a={29\\over 12}$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_358",
+    "file_path": "LeanWorkbookGen/test/lw_test_0010.lean",
+    "full_name": "LW_test_0010.lean_workbook_plus_358",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Let $ x$ be an integer. What is the smallest possible value of $ |2x - 7| + |2x - 9| + |2x - 11| + |2x - 13| + |2x - 15|$ .",
+    "informal_proof": "13",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_358",
+    "file_path": "LeanWorkbookGen/test/lw_test_0012.lean",
+    "full_name": "LW_test_0012.lean_workbook_plus_358",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Let $ x$ be an integer. What is the smallest possible value of $ |2x - 7| + |2x - 9| + |2x - 11| + |2x - 13| + |2x - 15|$ .",
+    "informal_proof": "13",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_359",
+    "file_path": "LeanWorkbookGen/test/lw_test_0013.lean",
+    "full_name": "LW_test_0013.lean_workbook_plus_359",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Maybe written as $ 2^{3x} + 2^x \\cdot 3^x - 3 ^{3(x-1)} = 1$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_364",
+    "file_path": "LeanWorkbookGen/test/lw_test_0014.lean",
+    "full_name": "LW_test_0014.lean_workbook_plus_364",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "What is the smallest positive integer that leaves a remainder of $9$ when divided by $10$ , a remainder of $8$ when divided by $9$ , and so on, down to where it leaves a remainder of $1$ when divided by $2$ ?",
+    "informal_proof": "2519",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_370",
+    "file_path": "LeanWorkbookGen/test/lw_test_0015.lean",
+    "full_name": "LW_test_0015.lean_workbook_plus_370",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Simple its just $x^3 + y^3 + z^3 - 3xyz = (x + y + z)(x^2 + y^2 + z^2 - xy - yz - xz)$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_384",
+    "file_path": "LeanWorkbookGen/test/lw_test_0016.lean",
+    "full_name": "LW_test_0016.lean_workbook_plus_384",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove that for positive real numbers $a, b, c$:\\n$$2(a^4+b^4+c^4)+4(a^2b^2+c^2a^2+b^2c^2) \\ge 3(a^3c+b^3a+c^3b)+3abc(a+b+c)$$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_386",
+    "file_path": "LeanWorkbookGen/test/lw_test_0017.lean",
+    "full_name": "LW_test_0017.lean_workbook_plus_386",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "First equation is $(1+2x-t^2)t-x^2+x+x(2x-t^2)$\\nWhich may be written $(x-t^2+t)(x+t+1)=0$\\nAnd so $x=t^2-t$ or $x=-t-1$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_386",
+    "file_path": "LeanWorkbookGen/test/lw_test_0019.lean",
+    "full_name": "LW_test_0019.lean_workbook_plus_386",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "First equation is $(1+2x-t^2)t-x^2+x+x(2x-t^2)$\\nWhich may be written $(x-t^2+t)(x+t+1)=0$\\nAnd so $x=t^2-t$ or $x=-t-1$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_386",
+    "file_path": "LeanWorkbookGen/test/lw_test_0020.lean",
+    "full_name": "LW_test_0020.lean_workbook_plus_386",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "First equation is $(1+2x-t^2)t-x^2+x+x(2x-t^2)$\\nWhich may be written $(x-t^2+t)(x+t+1)=0$\\nAnd so $x=t^2-t$ or $x=-t-1$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_390",
+    "file_path": "LeanWorkbookGen/test/lw_test_0021.lean",
+    "full_name": "LW_test_0021.lean_workbook_plus_390",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Given is a sequence of positive integers, defined by $a_1=1$ and $a_{n+1}=a_n^2+a_n+1$ , for every positive integer $n$ . Prove that for every positive integer $n$ , $a_n^2+1 | a_{n+1}^2+1$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_390",
+    "file_path": "LeanWorkbookGen/test/lw_test_0022.lean",
+    "full_name": "LW_test_0022.lean_workbook_plus_390",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Given is a sequence of positive integers, defined by $a_1=1$ and $a_{n+1}=a_n^2+a_n+1$ , for every positive integer $n$ . Prove that for every positive integer $n$ , $a_n^2+1 | a_{n+1}^2+1$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_391",
+    "file_path": "LeanWorkbookGen/test/lw_test_0023.lean",
+    "full_name": "LW_test_0023.lean_workbook_plus_391",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Let $a,b,c \\geq 0$ , and $a+b+c=1$ , Prove that $$\\sqrt[3]{90}\\geq \\sqrt[3]{7a+1}+\\sqrt[3]{7b+1}+\\sqrt[3]{7c+1} \\geq 4$$",
+    "informal_proof": "4",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_394",
+    "file_path": "LeanWorkbookGen/test/lw_test_0024.lean",
+    "full_name": "LW_test_0024.lean_workbook_plus_394",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove that\\n$4\\sum_{cyc}a b^2 c^3 + 2\\sum_{cyc}b c^5 + 2\\sum_{cyc}a^2 c^4\\geq 6a^2 b^2 c^2 + 3\\sum_{cyc}a b c^4+ 3\\sum_{cyc}a^3 b^3$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_394",
+    "file_path": "LeanWorkbookGen/test/lw_test_0025.lean",
+    "full_name": "LW_test_0025.lean_workbook_plus_394",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove that\\n$4\\sum_{cyc}a b^2 c^3 + 2\\sum_{cyc}b c^5 + 2\\sum_{cyc}a^2 c^4\\geq 6a^2 b^2 c^2 + 3\\sum_{cyc}a b c^4+ 3\\sum_{cyc}a^3 b^3$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_402",
+    "file_path": "LeanWorkbookGen/test/lw_test_0026.lean",
+    "full_name": "LW_test_0026.lean_workbook_plus_402",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": " $ p+q+r=1/a$ \\n\\n $ pq+qr+pr=b/a$ \\n\\n $ \\rightarrow {ab}=\\frac{(pq+qr+pr)}{{(p+q+r)}^2}$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_402",
+    "file_path": "LeanWorkbookGen/test/lw_test_0027.lean",
+    "full_name": "LW_test_0027.lean_workbook_plus_402",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": " $ p+q+r=1/a$ \\n\\n $ pq+qr+pr=b/a$ \\n\\n $ \\rightarrow {ab}=\\frac{(pq+qr+pr)}{{(p+q+r)}^2}$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_402",
+    "file_path": "LeanWorkbookGen/test/lw_test_0028.lean",
+    "full_name": "LW_test_0028.lean_workbook_plus_402",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": " $ p+q+r=1/a$ \\n\\n $ pq+qr+pr=b/a$ \\n\\n $ \\rightarrow {ab}=\\frac{(pq+qr+pr)}{{(p+q+r)}^2}$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_406",
+    "file_path": "LeanWorkbookGen/test/lw_test_0029.lean",
+    "full_name": "LW_test_0029.lean_workbook_plus_406",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Let $f(n)$ be a sequence of integers defined by $f(1)=1, f(2)=1,$ and $f(n)=f(n-1)+(-1)^nf(n-2)$ for all integers $n \\geq 3.$ What is the value of $f(20)+f(21)?$",
+    "informal_proof": "1",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_415",
+    "file_path": "LeanWorkbookGen/test/lw_test_0030.lean",
+    "full_name": "LW_test_0030.lean_workbook_plus_415",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove that for positive real numbers $x, y, z$ satisfying $xyz = 1$, the following inequality holds:\\n$(x^{2}+y^{2}+z^{2})(x^{4}+y^{4}+z^{4})\\leq 3(x^{6}+y^{6}+z^{6})$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_420",
+    "file_path": "LeanWorkbookGen/test/lw_test_0031.lean",
+    "full_name": "LW_test_0031.lean_workbook_plus_420",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Illustrate the solution using the quadratic equation $(x-x_1)(x-x_2)\\equiv x^2-Sx+P=0$ where $S=x_1+x_2$ and $P=x_1x_2$.",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_420",
+    "file_path": "LeanWorkbookGen/test/lw_test_0032.lean",
+    "full_name": "LW_test_0032.lean_workbook_plus_420",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Illustrate the solution using the quadratic equation $(x-x_1)(x-x_2)\\equiv x^2-Sx+P=0$ where $S=x_1+x_2$ and $P=x_1x_2$.",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_432",
+    "file_path": "LeanWorkbookGen/test/lw_test_0033.lean",
+    "full_name": "LW_test_0033.lean_workbook_plus_432",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Let $a,b,c>0$ are satisfying $ab+bc+ca+2abc=1$ Prove 1, $\\sqrt[3]{4a^{2}}+\\sqrt[3]{4b^{2}}+\\sqrt[3]{4c^{2}}\\geq 3$",
+    "informal_proof": "3",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_435",
+    "file_path": "LeanWorkbookGen/test/lw_test_0034.lean",
+    "full_name": "LW_test_0034.lean_workbook_plus_435",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove that for non-negative real numbers $a, b, c$, the following inequality holds: $(a^{2}+b^{2}-c^{2})(a-b)^{2}+(b^{2}+c^{2}-a^{2})(b-c)^{2}+(c^{2}+a^{2}-b^{2})(c-a)^{2}\\geq 0$.",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_445",
+    "file_path": "LeanWorkbookGen/test/lw_test_0035.lean",
+    "full_name": "LW_test_0035.lean_workbook_plus_445",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Let a,b,c are three sides of an triangle satisfied: a+b+c=3. Prove that:\\n $ \\frac {1}{\\sqrt [3]{a + b - c}} + \\frac {1}{\\sqrt [3]{a + c - b}} + \\frac {1}{\\sqrt [3]{b + c - a}}\\geq \\frac {9}{\\sqrt {ab + bc + ca}}$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_471",
+    "file_path": "LeanWorkbookGen/test/lw_test_0039.lean",
+    "full_name": "LW_test_0039.lean_workbook_plus_471",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Lastly, we oversubtracted the case where the number is divisible by all three, so we need to add this back. The product of the three prime factors is $42$ , so we have $\\lfloor750/42\\rfloor=17$ . Finally, we have $732-213+17=536$ numbers below 750 that are divisible by $2$ , $3$ , or $7$ .",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_475",
+    "file_path": "LeanWorkbookGen/test/lw_test_0040.lean",
+    "full_name": "LW_test_0040.lean_workbook_plus_475",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Let $a, b$ be real numbers .\\n$2(1+a^2)(1+b^2)\\geq(1+a)(1+b)(1+ab)$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_476",
+    "file_path": "LeanWorkbookGen/test/lw_test_0041.lean",
+    "full_name": "LW_test_0041.lean_workbook_plus_476",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove that $(a+1)(a-1) = a^{2}-1$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_476",
+    "file_path": "LeanWorkbookGen/test/lw_test_0042.lean",
+    "full_name": "LW_test_0042.lean_workbook_plus_476",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove that $(a+1)(a-1) = a^{2}-1$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_478",
+    "file_path": "LeanWorkbookGen/test/lw_test_0043.lean",
+    "full_name": "LW_test_0043.lean_workbook_plus_478",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Let $a,b,c,d$ be non-negative real numbers such that $a^{3}+b^{3}+c^{3}+d^3 \\le d^2$. Show that $a^4+b^4+c^4+d^4\\ge{d^5}$.",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_487",
+    "file_path": "LeanWorkbookGen/test/lw_test_0044.lean",
+    "full_name": "LW_test_0044.lean_workbook_plus_487",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "If $a,b>0$ and $a^9+b^9=2$ Then prove $\\frac{a^2}{b}+\\frac{b^2}{a}\\geq2$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_487",
+    "file_path": "LeanWorkbookGen/test/lw_test_0045.lean",
+    "full_name": "LW_test_0045.lean_workbook_plus_487",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "If $a,b>0$ and $a^9+b^9=2$ Then prove $\\frac{a^2}{b}+\\frac{b^2}{a}\\geq2$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_487",
+    "file_path": "LeanWorkbookGen/test/lw_test_0046.lean",
+    "full_name": "LW_test_0046.lean_workbook_plus_487",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "If $a,b>0$ and $a^9+b^9=2$ Then prove $\\frac{a^2}{b}+\\frac{b^2}{a}\\geq2$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_487",
+    "file_path": "LeanWorkbookGen/test/lw_test_0047.lean",
+    "full_name": "LW_test_0047.lean_workbook_plus_487",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "If $a,b>0$ and $a^9+b^9=2$ Then prove $\\frac{a^2}{b}+\\frac{b^2}{a}\\geq2$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_489",
+    "file_path": "LeanWorkbookGen/test/lw_test_0048.lean",
+    "full_name": "LW_test_0048.lean_workbook_plus_489",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "$\\frac{8}{3}\\geq {\\frac { \\left( a+b \\right) \\left( c+d \\right) }{ \\left( b+c+d \\right) \\left( a+c+d \\right) }}+{\\frac { \\left( b+c \\right) \\left( d+a \\right) }{ \\left( a+c+d \\right) \\left( d+a+b \\right) }}+{\\frac { \\left( a+b \\right) \\left( c+d \\right) }{ \\left( d+a+b \\right) \\left( a+b+c \\right) }}+{\\frac { \\left( b+c \\right) \\left( d+a \\right) }{ \\left( a+b+c \\right) \\left( b+c+d \\right) }}+{\\frac { \\left( c+a \\right) \\left( b+d \\right) }{ \\left( b+c+d \\right) \\left( d+a+b \\right) }}+{\\frac { \\left( c+a \\right) \\left( b+d \\right) }{ \\left( a+c+d \\right) \\left( a+b+c \\right) }}$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_489",
+    "file_path": "LeanWorkbookGen/test/lw_test_0049.lean",
+    "full_name": "LW_test_0049.lean_workbook_plus_489",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "$\\frac{8}{3}\\geq {\\frac { \\left( a+b \\right) \\left( c+d \\right) }{ \\left( b+c+d \\right) \\left( a+c+d \\right) }}+{\\frac { \\left( b+c \\right) \\left( d+a \\right) }{ \\left( a+c+d \\right) \\left( d+a+b \\right) }}+{\\frac { \\left( a+b \\right) \\left( c+d \\right) }{ \\left( d+a+b \\right) \\left( a+b+c \\right) }}+{\\frac { \\left( b+c \\right) \\left( d+a \\right) }{ \\left( a+b+c \\right) \\left( b+c+d \\right) }}+{\\frac { \\left( c+a \\right) \\left( b+d \\right) }{ \\left( b+c+d \\right) \\left( d+a+b \\right) }}+{\\frac { \\left( c+a \\right) \\left( b+d \\right) }{ \\left( a+c+d \\right) \\left( a+b+c \\right) }}$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_490",
+    "file_path": "LeanWorkbookGen/test/lw_test_0050.lean",
+    "full_name": "LW_test_0050.lean_workbook_plus_490",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Use another application of AM-GM to prove that $27(a^2+b^2+c^2)(ab+bc+ca)^2\\geq 81abc(a+b+c)(a^2+b^2+c^2)$.",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_510",
+    "file_path": "LeanWorkbookGen/test/lw_test_0051.lean",
+    "full_name": "LW_test_0051.lean_workbook_plus_510",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "How many pairs of integers $(x,y)$ are there such that $\\frac{x}{y+7}+\\frac{y}{x+7}=1$ ?",
+    "informal_proof": "15",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_510",
+    "file_path": "LeanWorkbookGen/test/lw_test_0052.lean",
+    "full_name": "LW_test_0052.lean_workbook_plus_510",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "How many pairs of integers $(x,y)$ are there such that $\\frac{x}{y+7}+\\frac{y}{x+7}=1$ ?",
+    "informal_proof": "15",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_519",
+    "file_path": "LeanWorkbookGen/test/lw_test_0053.lean",
+    "full_name": "LW_test_0053.lean_workbook_plus_519",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove that $\\sqrt[5]2+7<8\\sqrt[10]2$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_520",
+    "file_path": "LeanWorkbookGen/test/lw_test_0054.lean",
+    "full_name": "LW_test_0054.lean_workbook_plus_520",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove that $10^{-1} = 0.1$ using the law of exponents $a^{-m} = \\frac{1}{a^m}$.",
+    "informal_proof": "0.1",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_522",
+    "file_path": "LeanWorkbookGen/test/lw_test_0055.lean",
+    "full_name": "LW_test_0055.lean_workbook_plus_522",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "If $ x_1,x_2,...,x_n \\ge 0$ then $ x_1^2+x_2^2+...+x_n^2 \\ge 0$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_523",
+    "file_path": "LeanWorkbookGen/test/lw_test_0056.lean",
+    "full_name": "LW_test_0056.lean_workbook_plus_523",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Given that $ y=\\frac{x^{2} + x + 1}{(x-1)^{2}}$ , prove that $ y\\ge\\frac{1}{4}$ for all $ x\\neq 1$ .",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_523",
+    "file_path": "LeanWorkbookGen/test/lw_test_0057.lean",
+    "full_name": "LW_test_0057.lean_workbook_plus_523",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Given that $ y=\\frac{x^{2} + x + 1}{(x-1)^{2}}$ , prove that $ y\\ge\\frac{1}{4}$ for all $ x\\neq 1$ .",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_523",
+    "file_path": "LeanWorkbookGen/test/lw_test_0058.lean",
+    "full_name": "LW_test_0058.lean_workbook_plus_523",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Given that $ y=\\frac{x^{2} + x + 1}{(x-1)^{2}}$ , prove that $ y\\ge\\frac{1}{4}$ for all $ x\\neq 1$ .",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_526",
+    "file_path": "LeanWorkbookGen/test/lw_test_0059.lean",
+    "full_name": "LW_test_0059.lean_workbook_plus_526",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove that $1 \\times 2 \\times 3 \\times \\ldots \\times n \\geq 2^{n-1}$ for $n$ in the set of counting numbers.",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_526",
+    "file_path": "LeanWorkbookGen/test/lw_test_0060.lean",
+    "full_name": "LW_test_0060.lean_workbook_plus_526",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove that $1 \\times 2 \\times 3 \\times \\ldots \\times n \\geq 2^{n-1}$ for $n$ in the set of counting numbers.",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_528",
+    "file_path": "LeanWorkbookGen/test/lw_test_0061.lean",
+    "full_name": "LW_test_0061.lean_workbook_plus_528",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Denotes the fractional part, or $\\{x\\}=x-\\lfloor x\\rfloor$ .",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_544",
+    "file_path": "LeanWorkbookGen/test/lw_test_0062.lean",
+    "full_name": "LW_test_0062.lean_workbook_plus_544",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "$P(x,x)$ $\\implies$ $f(x)^2=1$ and so $f(x)\\in\\{-1,1\\}$ $\\forall x$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_544",
+    "file_path": "LeanWorkbookGen/test/lw_test_0063.lean",
+    "full_name": "LW_test_0063.lean_workbook_plus_544",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "$P(x,x)$ $\\implies$ $f(x)^2=1$ and so $f(x)\\in\\{-1,1\\}$ $\\forall x$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_559",
+    "file_path": "LeanWorkbookGen/test/lw_test_0064.lean",
+    "full_name": "LW_test_0064.lean_workbook_plus_559",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "By squaring and adding side by side them: $|a|\\ge |b+c|,|b|\\ge |c+a|$ and $|c|\\ge |a+b|$ we get $(a+b+c)^2\\le 0 \\Longrightarrow \\ \\ \\ a+b+c=0$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_559",
+    "file_path": "LeanWorkbookGen/test/lw_test_0065.lean",
+    "full_name": "LW_test_0065.lean_workbook_plus_559",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "By squaring and adding side by side them: $|a|\\ge |b+c|,|b|\\ge |c+a|$ and $|c|\\ge |a+b|$ we get $(a+b+c)^2\\le 0 \\Longrightarrow \\ \\ \\ a+b+c=0$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_587",
+    "file_path": "LeanWorkbookGen/test/lw_test_0066.lean",
+    "full_name": "LW_test_0066.lean_workbook_plus_587",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "$ 477/27<18 $ and $ 18^{3}<2001^{2} $ .",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_589",
+    "file_path": "LeanWorkbookGen/test/lw_test_0067.lean",
+    "full_name": "LW_test_0067.lean_workbook_plus_589",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "find the values of $a, b, c$ when $a+b+c=1, ab+bc+ca=\\frac{1}{4}, abc=\\frac{1}{72}$",
+    "informal_proof": "a=0.07798518563, b=0.2754506074, c=0.6465642069 or cyclic permutations",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_589",
+    "file_path": "LeanWorkbookGen/test/lw_test_0068.lean",
+    "full_name": "LW_test_0068.lean_workbook_plus_589",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "find the values of $a, b, c$ when $a+b+c=1, ab+bc+ca=\\frac{1}{4}, abc=\\frac{1}{72}$",
+    "informal_proof": "a=0.07798518563, b=0.2754506074, c=0.6465642069 or cyclic permutations",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_590",
+    "file_path": "LeanWorkbookGen/test/lw_test_0069.lean",
+    "full_name": "LW_test_0069.lean_workbook_plus_590",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "The positive integers $x, y$ and $z$ , where $x < y$ , satisfy $x^{3}+y^{3} = kz^{3}$ , (\\*) where $k$ is a given positive integer. In the case $x+y=k$ , show that $z^{3} = k^{2}-3kx +3x^{2}$ . Deduce that $(4z^{3}-k^{2})/3$ is a perfect square and that $\\frac{1}{4}k^{2} \\leq z^{3} <k^{2}$ . Use these results to find a solution of (\\*) when $k=20$ .",
+    "informal_proof": "x=1, y=19, z=7",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_599",
+    "file_path": "LeanWorkbookGen/test/lw_test_0072.lean",
+    "full_name": "LW_test_0072.lean_workbook_plus_599",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove that $|\\overrightarrow{a}-\\overrightarrow{b}|^2=|(\\overrightarrow{a}-\\overrightarrow{c})-(\\overrightarrow{b}-\\overrightarrow{c})|^2$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_606",
+    "file_path": "LeanWorkbookGen/test/lw_test_0073.lean",
+    "full_name": "LW_test_0073.lean_workbook_plus_606",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove that $ c^3 \\leq 2c^2$ for all real numbers $ c$ .",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_606",
+    "file_path": "LeanWorkbookGen/test/lw_test_0074.lean",
+    "full_name": "LW_test_0074.lean_workbook_plus_606",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove that $ c^3 \\leq 2c^2$ for all real numbers $ c$ .",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_608",
+    "file_path": "LeanWorkbookGen/test/lw_test_0075.lean",
+    "full_name": "LW_test_0075.lean_workbook_plus_608",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Show that $k^n = (k-1)^n + (k^n - (k-1)^n) \\cdot 1^n$.",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_608",
+    "file_path": "LeanWorkbookGen/test/lw_test_0076.lean",
+    "full_name": "LW_test_0076.lean_workbook_plus_608",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Show that $k^n = (k-1)^n + (k^n - (k-1)^n) \\cdot 1^n$.",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_608",
+    "file_path": "LeanWorkbookGen/test/lw_test_0077.lean",
+    "full_name": "LW_test_0077.lean_workbook_plus_608",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Show that $k^n = (k-1)^n + (k^n - (k-1)^n) \\cdot 1^n$.",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_631",
+    "file_path": "LeanWorkbookGen/test/lw_test_0078.lean",
+    "full_name": "LW_test_0078.lean_workbook_plus_631",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove that $b^2 - b^2.sinA.sinA = b^2.{cos}^2A$.",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_634",
+    "file_path": "LeanWorkbookGen/test/lw_test_0079.lean",
+    "full_name": "LW_test_0079.lean_workbook_plus_634",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove that $\\frac{a+b+c}{1+bc} \\le 2$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_634",
+    "file_path": "LeanWorkbookGen/test/lw_test_0080.lean",
+    "full_name": "LW_test_0080.lean_workbook_plus_634",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove that $\\frac{a+b+c}{1+bc} \\le 2$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_642",
+    "file_path": "LeanWorkbookGen/test/lw_test_0083.lean",
+    "full_name": "LW_test_0083.lean_workbook_plus_642",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "Prove the identity: \\n$$\\sqrt[3]{\\sqrt[3]{2}-1}=\\sqrt[3]{\\frac{1}{9}}-\\sqrt[3]{\\frac{2}{9}}+\\sqrt[3]{\\frac{4}{9}}$$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_662",
+    "file_path": "LeanWorkbookGen/test/lw_test_0084.lean",
+    "full_name": "LW_test_0084.lean_workbook_plus_662",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "If $ a,b$ both odd then $ X=a^2+b^2+26$ even and $ Y=5ab$ odd.",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_662",
+    "file_path": "LeanWorkbookGen/test/lw_test_0085.lean",
+    "full_name": "LW_test_0085.lean_workbook_plus_662",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "If $ a,b$ both odd then $ X=a^2+b^2+26$ even and $ Y=5ab$ odd.",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_662",
+    "file_path": "LeanWorkbookGen/test/lw_test_0086.lean",
+    "full_name": "LW_test_0086.lean_workbook_plus_662",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "If $ a,b$ both odd then $ X=a^2+b^2+26$ even and $ Y=5ab$ odd.",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_671",
+    "file_path": "LeanWorkbookGen/test/lw_test_0087.lean",
+    "full_name": "LW_test_0087.lean_workbook_plus_671",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "$ \\frac {1}{k^2}x^2 + x\\left(\\frac {1}{k^4} - 1 - \\frac {1}{k^2} - \\frac {1}{k^3} -\\frac {1}{k(k^2 + 1)} \\right) + \\left(\\frac {1}{k^2} + \\frac {1}{k^3} - \\frac {1}{k^4} - \\frac {1}{k}\\right)\\leq 0$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  },
+  {
+    "id": "lean_workbook_plus_671",
+    "file_path": "LeanWorkbookGen/test/lw_test_0088.lean",
+    "full_name": "LW_test_0088.lean_workbook_plus_671",
+    "start": [
+      3,
+      1
+    ],
+    "split": "test",
+    "informal_stmt": "$ \\frac {1}{k^2}x^2 + x\\left(\\frac {1}{k^4} - 1 - \\frac {1}{k^2} - \\frac {1}{k^3} -\\frac {1}{k(k^2 + 1)} \\right) + \\left(\\frac {1}{k^2} + \\frac {1}{k^3} - \\frac {1}{k^4} - \\frac {1}{k}\\right)\\leq 0$",
+    "informal_proof": "",
+    "url": "/home/deng254/CS59200_S26/ReProver/data/lean_workbook_reprover/project",
+    "commit": "71be36c5dbf34295c97c7282558f2edebd126a65"
+  }
+]
