@@ -3,6 +3,7 @@
 
 import os
 from datetime import datetime
+import subprocess
 
 os.environ["RAY_DEDUP_LOGS"] = "0"
 import uuid
@@ -75,9 +76,18 @@ def _get_theorems(
 
     all_repos = {thm.repo for thm in theorems}
     for r in all_repos:
-        assert is_available_in_cache(
-            r
-        ), f"{r} has not been traced yet. Please use LeanDojo to trace it so that it's available in the cache."
+        # LeanDojo's tracer runs bare `lean` (not `lake env lean`) for --print-prefix; elan
+        # would otherwise use the user's default toolchain (often 4.30+) and break
+        # ExtractData.lean against a project pinned to an older Lean (e.g. MiniF2F @ 4.29).
+        tc = _elan_toolchain_from_local_repo(str(r.url))
+        if tc:
+            os.environ["ELAN_TOOLCHAIN"] = tc
+            logger.info(f"Set ELAN_TOOLCHAIN={tc} for tracing {r}")
+        # Ensures ~/.cache/lean_dojo has a trace; traces on first use (can take a while).
+        try:
+            get_traced_repo_path(r)
+        except subprocess.CalledProcessError:
+            logger.warning(f"Tracing {r} failed (lake build exited non-zero). Continuing anyway, as some OLEANs may have been built.")
 
     return repo, theorems, positions
 
@@ -192,7 +202,6 @@ def evaluate(
         wall_timeout=wall_timeout,
     )
     results = prover.search_unordered(repo, theorems, positions, wall_timeout=wall_timeout)
-
     # Calculate the result statistics.
     num_proved = num_failed = num_discarded = 0
     for r in results:
@@ -237,7 +246,7 @@ def main() -> None:
     parser.add_argument(
         "--split",
         type=str,
-        choices=["train", "val", "test"],
+        choices=["train", "val", "test", "lw_val", "lw_test"],
         default="val",
     )
     # `file_path`, `full_name`, `name_filter`, and `num_theorems` can be used to filter theorems.
