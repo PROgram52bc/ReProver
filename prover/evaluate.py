@@ -11,13 +11,24 @@ import json
 import pickle
 import hashlib
 import argparse
+from pathlib import Path
 from loguru import logger
 from lean_dojo import Theorem
 from typing import List, Tuple, Optional
 from lean_dojo import LeanGitRepo, Theorem, Pos, is_available_in_cache
+from lean_dojo.data_extraction.trace import get_traced_repo_path
 
 from common import set_logger
 from prover.proof_search import Status, DistributedProver
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _elan_toolchain_from_local_repo(repo_path: str) -> Optional[str]:
+    path = Path(repo_path) / "lean-toolchain"
+    if path.exists():
+        return path.read_text().strip()
+    return None
 
 
 def _get_theorems(
