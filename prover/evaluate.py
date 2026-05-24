@@ -4,6 +4,7 @@
 import os
 from datetime import datetime
 import subprocess
+import inspect
 
 os.environ["RAY_DEDUP_LOGS"] = "0"
 import uuid
@@ -31,6 +32,56 @@ def _elan_toolchain_from_local_repo(repo_path: str) -> Optional[str]:
     return None
 
 
+def _patch_leandojo_extract_data_compat() -> None:
+    """Patch LeanDojo ExtractData for Lean parser header API differences."""
+    try:
+        from lean_dojo.data_extraction import trace as trace_mod
+    except Exception as ex:
+        logger.warning(f"Unable to import LeanDojo trace module for compatibility patch: {ex}")
+        return
+
+    extract_path = Path(inspect.getfile(trace_mod)).resolve().parent / "ExtractData.lean"
+    if not extract_path.exists():
+        return
+
+    text = extract_path.read_text(encoding="utf-8")
+    old = "IO.FS.writeFile dep_path (← getImports header)"
+    new = "IO.FS.writeFile dep_path (← getImports ⟨header⟩)"
+    if old in text:
+        extract_path.write_text(text.replace(old, new), encoding="utf-8")
+        logger.info(f"Patched LeanDojo ExtractData compatibility at {extract_path}")
+
+
+def _is_preprocessed_theorem_record(record: dict) -> bool:
+    required_keys = {"file_path", "full_name", "start", "url", "commit"}
+    return required_keys.issubset(record.keys())
+
+
+def _resolve_minif2f_data_path(data_path: str, split: str) -> str:
+    split_file = Path(data_path) / f"{split}.json"
+    if split_file.exists():
+        data = json.loads(split_file.read_text())
+        if len(data) > 0 and _is_preprocessed_theorem_record(data[0]):
+            return data_path
+        if len(data) > 0:
+            fallback = Path(data_path) / "minif2f"
+            fallback_split = fallback / f"{split}.json"
+            if fallback_split.exists():
+                logger.warning(
+                    f"Detected raw MiniF2F rows in {split_file}; using {fallback} instead."
+                )
+                return str(fallback)
+    fallback = Path(data_path) / "minif2f"
+    fallback_split = fallback / f"{split}.json"
+    if fallback_split.exists():
+        return str(fallback)
+    raise ValueError(
+        "MiniF2F records are not in LeanDojo format. Run "
+        "`python scripts/setup_minif2f_example.py` and use "
+        "`--data-path data/minif2f`."
+    )
+
+
 def _get_theorems(
     data_path: str,
     split: str,
@@ -42,7 +93,10 @@ def _get_theorems(
     repo_url: Optional[str] = None,
     commit: Optional[str] = None,
 ) -> Tuple[LeanGitRepo, List[Theorem], List[Pos]]:
-    if dataset == "leandojo":
+    if dataset == "minif2f":
+        data_path = _resolve_minif2f_data_path(data_path, split)
+
+    if dataset in {"leandojo", "minif2f"}:
         repo, theorems, positions = _get_theorems_from_files(
             data_path,
             split,
@@ -52,10 +106,7 @@ def _get_theorems(
             num_theorems,
         )
     else:
-        if dataset == "minif2f":
-            repo_url = repo_url or "https://github.com/leanprover-community/mathlib4"
-            commit = commit or "main"
-        elif dataset == "veribench":
+        if dataset == "veribench":
             default_repo_url = repo_url or "https://github.com/shishir-h/VeriBench"
             default_commit = commit or "main"
         elif dataset == "lean_workbook":
@@ -79,11 +130,12 @@ def _get_theorems(
                 continue
             if full_name is not None and t["full_name"] != full_name:
                 continue
-            theorems.append(Theorem(repo, t["file_path"], t["full_name"]))
+            theorems.append(Theorem(default_repo, t["file_path"], t["full_name"]))
             if "start" in t:
                 positions.append(Pos(*t["start"]))
             else:
                 positions.append(Pos(1, 1))
+        repo = default_repo
 
     all_repos = {thm.repo for thm in theorems}
     for r in all_repos:
@@ -112,6 +164,13 @@ def _get_theorems_from_files(
     num_theorems: Optional[int],
 ) -> Tuple[LeanGitRepo, List[Theorem], List[Pos]]:
     data = json.load(open(os.path.join(data_path, f"{split}.json")))
+    if len(data) == 0:
+        raise ValueError(f"No theorems found in {os.path.join(data_path, f'{split}.json')}")
+    if not _is_preprocessed_theorem_record(data[0]):
+        raise ValueError(
+            f"{os.path.join(data_path, f'{split}.json')} is missing one or more required keys: "
+            "file_path, full_name, start, url, commit."
+        )
     theorems = []
     positions = []
 
@@ -146,8 +205,12 @@ def _get_theorems_from_files(
         positions = positions[:num_theorems]
     logger.info(f"{len(theorems)} theorems loaded from {data_path}")
 
-    metadata = json.load(open(os.path.join(data_path, "../metadata.json")))
-    repo = LeanGitRepo(metadata["from_repo"]["url"], metadata["from_repo"]["commit"])
+    metadata_path = os.path.join(data_path, "../metadata.json")
+    if os.path.exists(metadata_path):
+        metadata = json.load(open(metadata_path))
+        repo = LeanGitRepo(metadata["from_repo"]["url"], metadata["from_repo"]["commit"])
+    else:
+        repo = theorems[0].repo
 
     return repo, theorems, positions
 
@@ -185,6 +248,7 @@ def evaluate(
     wall_timeout: Optional[int] = None,
 ) -> float:
     set_logger(verbose)
+    _patch_leandojo_extract_data_compat()
 
     repo, theorems, positions = _get_theorems(
         data_path, split, file_path, full_name, name_filter, num_theorems, dataset, repo_url, commit

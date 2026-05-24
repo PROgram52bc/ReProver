@@ -62,18 +62,18 @@ python scripts/download_data.py
 - **VeriBench**: Formal verification benchmarks.
 
 ### MiniF2F Dataset Setup
-The MiniF2F dataset must be transformed into standard JSON arrays before running evaluation.
+MiniF2F must be preprocessed into LeanDojo-style theorem records before evaluation.
 
 1. **Download and Transform**:
    ```bash
    python scripts/setup_minif2f_example.py
    ```
-   This script downloads `cat-searcher/minif2f-lean4` from Hugging Face and saves `val.json` and `test.json` to the `data/` directory in the required format.
+   This script downloads (or reuses) MiniF2F rows, generates a local Lean project at `data/minif2f/project`, and writes LeanDojo-style theorem files to `data/minif2f/val.json` and `data/minif2f/test.json`.
 
 2. **Evaluate**:
    ```bash
    python prover/evaluate.py \
-       --data-path data/ \
+       --data-path data/minif2f \
        --dataset minif2f \
        --gen_ckpt_path kaiyuy/leandojo-lean4-tacgen-byt5-small \
        --num-sampled-tactics 5 \
