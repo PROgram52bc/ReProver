@@ -53,14 +53,20 @@ def _get_theorems(
         )
     else:
         if dataset == "minif2f":
-            repo_url = repo_url or "https://github.com/leanprover-community/mathlib4"
-            commit = commit or "main"
+            default_repo_url = repo_url or "https://github.com/leanprover-community/mathlib4"
+            default_commit = commit or "master"
         elif dataset == "veribench":
             default_repo_url = repo_url or "https://github.com/shishir-h/VeriBench"
             default_commit = commit or "main"
         elif dataset == "lean_workbook":
             default_repo_url = repo_url or str((_REPO_ROOT / "data/lean_workbook_reprover/project").resolve())
-            default_commit = commit or "main"
+            try:
+                head_commit = subprocess.check_output(
+                    ["git", "rev-parse", "HEAD"], cwd=default_repo_url, text=True
+                ).strip()
+            except Exception:
+                head_commit = "master"
+            default_commit = commit or head_commit
         else:
             assert repo_url is not None and commit is not None, (
                 "repo_url and commit must be provided for custom datasets."
@@ -69,6 +75,7 @@ def _get_theorems(
             default_commit = commit
 
         import shutil
+
         shutil.rmtree("project", ignore_errors=True)
         default_repo = LeanGitRepo(default_repo_url, default_commit)
         data = json.load(open(os.path.join(data_path, f"{split}.json")))
@@ -79,11 +86,12 @@ def _get_theorems(
                 continue
             if full_name is not None and t["full_name"] != full_name:
                 continue
-            theorems.append(Theorem(repo, t["file_path"], t["full_name"]))
+            theorems.append(Theorem(default_repo, t["file_path"], t["full_name"]))
             if "start" in t:
                 positions.append(Pos(*t["start"]))
             else:
                 positions.append(Pos(1, 1))
+        repo = default_repo
 
     all_repos = {thm.repo for thm in theorems}
     for r in all_repos:

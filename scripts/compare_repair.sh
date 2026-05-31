@@ -6,6 +6,14 @@ GEN_CKPT="kaiyuy/leandojo-lean4-retriever-tacgen-byt5-small"
 RET_CKPT="kaiyuy/leandojo-lean4-retriever-byt5-small"
 INDEXED_CORPUS="data/leandojo_benchmark_4/indexed_corpus.pkl"
 WALL_TIMEOUT=100000  # Fair cutoff time for all runs in an experiment
+UNBOUNDED_RUNTIME=true # Set to true to run until exhaustion (ignores WALL_TIMEOUT)
+
+# Construct timeout argument
+TIMEOUT_ARG="--wall-timeout $WALL_TIMEOUT"
+if [ "$UNBOUNDED_RUNTIME" = true ]; then
+    TIMEOUT_ARG=""
+    echo "Running in UNBOUNDED mode (no wall timeout)"
+fi
 
 # Experiment sets (modify these arrays to scale your experiments)
 THEOREMS_LIST=(2000)
@@ -20,8 +28,13 @@ for thm in "${THEOREMS_LIST[@]}"; do
         EXP_BASE_ID="thm${thm}_tac${tac}"
         LOGS_TO_COMPARE=()
         
+        DISPLAY_TIMEOUT="${WALL_TIMEOUT}s"
+        if [ "$UNBOUNDED_RUNTIME" = true ]; then
+            DISPLAY_TIMEOUT="Unbounded"
+        fi
+
         echo "========================================================="
-        echo "EXPERIMENT: Theorems=$thm | Tactics=$tac | Timeout=${WALL_TIMEOUT}s"
+        echo "EXPERIMENT: Theorems=$thm | Tactics=$tac | Timeout=${DISPLAY_TIMEOUT}"
         echo "========================================================="
 
         # 1. Run WITHOUT repair model (Baseline)
@@ -34,7 +47,7 @@ for thm in "${THEOREMS_LIST[@]}"; do
             --indexed-corpus-path "$INDEXED_CORPUS" \
             --num-sampled-tactics "$tac" \
             --num-theorems "$thm" \
-            --wall-timeout "$WALL_TIMEOUT" \
+            $TIMEOUT_ARG \
             --log-file "$LOG_NO_REPAIR" \
             --exp-id "${EXP_BASE_ID}_norepair" \
             --save-results
@@ -54,7 +67,7 @@ for thm in "${THEOREMS_LIST[@]}"; do
                 --num-theorems "$thm" \
                 --repair-ckpt-path "uw-math-ai/gAPRIL-wo-exp" \
                 --repair-count "$rep" \
-                --wall-timeout "$WALL_TIMEOUT" \
+                $TIMEOUT_ARG \
                 --log-file "$LOG_REPAIR" \
                 --exp-id "${EXP_BASE_ID}_repair_c${rep}" \
                 --save-results
