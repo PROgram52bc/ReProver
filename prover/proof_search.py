@@ -28,6 +28,7 @@ from vllm import AsyncLLMEngine, AsyncEngineArgs, SamplingParams, RequestOutput
 
 from common import zip_strict
 from prover.search_tree import *
+from prover.timing import TimeoutAccounting, charged_time, should_stop_local
 from prover.utils import log_failed_tactic
 from prover.tactic_generator import (
     TacticGenerator,
@@ -49,6 +50,7 @@ class SearchResult:
     # Some statistics during proof search.
     actor_time: float
     environment_time: float
+    repair_time: float
     total_time: float
     num_total_nodes: int
     num_searched_nodes: int
@@ -66,7 +68,7 @@ class BestFirstSearchProver:
         debug: bool,
         repair_gen: Optional[RepairGenerator] = None,
         repair_count: int = 1,
-        wall_timeout: Optional[int] = None,
+        timeout_accounting: TimeoutAccounting = "wall",
     ) -> None:
         self.tac_gen = tac_gen
         self.tac_gen.initialize()
@@ -76,7 +78,7 @@ class BestFirstSearchProver:
         self.debug = debug
         self.repair_gen = repair_gen
         self.repair_count = repair_count
-        self.wall_timeout = wall_timeout
+        self.timeout_accounting = timeout_accounting
 
         self.num_expansions = 0
         self.actor_time = 0.0
@@ -145,6 +147,7 @@ class BestFirstSearchProver:
                 proof=proof,
                 actor_time=self.actor_time,
                 environment_time=self.environment_time,
+                repair_time=self.repair_time,
                 total_time=self.total_time,
                 num_total_nodes=len(self.nodes),
                 num_searched_nodes=self.num_expansions,
@@ -174,9 +177,16 @@ class BestFirstSearchProver:
                 assert time.time() - time_start >= self.timeout
 
             self.total_time = time.time() - time_start
-            effective_time = self.total_time - self.repair_time
-            if effective_time > self.timeout or (
-                self.wall_timeout is not None and self.total_time > self.wall_timeout
+            charged = charged_time(
+                total_time=self.total_time,
+                repair_time=self.repair_time,
+                mode=self.timeout_accounting,
+            )
+            if should_stop_local(
+                total_time=self.total_time,
+                repair_time=self.repair_time,
+                timeout=self.timeout,
+                mode=self.timeout_accounting,
             ) or (
                 self.max_expansions is not None
                 and self.num_expansions > self.max_expansions
@@ -185,7 +195,13 @@ class BestFirstSearchProver:
                     logger.info("Found a proof!")
                 else:
                     self.root.status = Status.OPEN
-                logger.info(f"Hit the resource limit. Effective time: {effective_time:.2f}s, Total time: {self.total_time:.2f}s, Repair overhead: {self.repair_time:.2f}s")
+                logger.info(
+                    "Hit the resource limit. "
+                    f"Timeout accounting: {self.timeout_accounting} | "
+                    f"Charged time: {charged:.2f}s | "
+                    f"Total time: {self.total_time:.2f}s | "
+                    f"Repair overhead: {self.repair_time:.2f}s"
+                )
                 break
 
             if self.root.status == Status.FAILED:
@@ -475,7 +491,7 @@ class ProverActor:
         max_inp_seq_len: int = 2048,
         max_oup_seq_len: int = 512,
         repair_count: int = 1,
-        wall_timeout: Optional[int] = None,
+        timeout_accounting: TimeoutAccounting = "wall",
     ) -> None:
         device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         repair_gen = RepairGenerator(
@@ -494,7 +510,7 @@ class ProverActor:
                 debug,
                 repair_gen=repair_gen,
                 repair_count=repair_count,
-                wall_timeout=wall_timeout,
+                timeout_accounting=timeout_accounting,
             )
         elif algorithm == "bfs":
             from prover.bfs_search import BreadthFirstSearchProver
@@ -504,7 +520,6 @@ class ProverActor:
                 max_expansions,
                 num_sampled_tactics,
                 debug,
-                wall_timeout=wall_timeout,
             )
         elif algorithm == "dfs":
             from prover.dfs_search import DepthFirstSearchProver
@@ -514,7 +529,6 @@ class ProverActor:
                 max_expansions,
                 num_sampled_tactics,
                 debug,
-                wall_timeout=wall_timeout,
             )
         else:
             raise ValueError(f"Unknown algorithm: {algorithm}")
@@ -589,7 +603,7 @@ class DistributedProver:
         algorithm: str = "best",
         repair_ckpt_path: Optional[str] = None,
         repair_count: int = 1,
-        wall_timeout: Optional[int] = None,
+        timeout_accounting: TimeoutAccounting = "wall",
     ) -> None:
         if gen_ckpt_path is None:
             assert tactic and not indexed_corpus_path
@@ -633,17 +647,17 @@ class DistributedProver:
                     max_oup_seq_len=max_oup_seq_len,
                 ) if repair_ckpt_path else None
                 self.prover = BestFirstSearchProver(
-                    tac_gen, timeout, max_expansions, num_sampled_tactics, debug, repair_gen=repair_gen, repair_count=repair_count, wall_timeout=wall_timeout
+                    tac_gen, timeout, max_expansions, num_sampled_tactics, debug, repair_gen=repair_gen, repair_count=repair_count, timeout_accounting=timeout_accounting
                 )
             elif algorithm == "bfs":
                 from prover.bfs_search import BreadthFirstSearchProver
                 self.prover = BreadthFirstSearchProver(
-                    tac_gen, timeout, max_expansions, num_sampled_tactics, debug, wall_timeout=wall_timeout
+                    tac_gen, timeout, max_expansions, num_sampled_tactics, debug
                 )
             elif algorithm == "dfs":
                 from prover.dfs_search import DepthFirstSearchProver
                 self.prover = DepthFirstSearchProver(
-                    tac_gen, timeout, max_expansions, num_sampled_tactics, debug, wall_timeout=wall_timeout
+                    tac_gen, timeout, max_expansions, num_sampled_tactics, debug
                 )
             else:
                 raise ValueError(f"Unknown algorithm: {algorithm}")
@@ -668,7 +682,7 @@ class DistributedProver:
                     max_inp_seq_len=max_inp_seq_len,
                     max_oup_seq_len=max_oup_seq_len,
                     repair_count=repair_count,
-                    wall_timeout=wall_timeout,
+                    timeout_accounting=timeout_accounting,
                 )
                 for _ in range(num_workers)
             ]
@@ -686,7 +700,7 @@ class DistributedProver:
                     max_inp_seq_len=max_inp_seq_len,
                     max_oup_seq_len=max_oup_seq_len,
                     repair_count=repair_count,
-                    wall_timeout=wall_timeout,
+                    timeout_accounting=timeout_accounting,
                 )
                 for _ in range(num_workers)
             ]
@@ -694,7 +708,7 @@ class DistributedProver:
         self.prover_pool = ActorPool(provers)
 
     def search_unordered(
-        self, repo: LeanGitRepo, theorems: List[Theorem], positions: List[Pos], wall_timeout: Optional[int] = None
+        self, repo: LeanGitRepo, theorems: List[Theorem], positions: List[Pos], global_wall_timeout: Optional[int] = None
     ) -> List[Optional[SearchResult]]:
         """Parallel proof search for `theorems`. The order of the results is not guaranteed to match the order of the input."""
         start_time = time.time()
@@ -702,8 +716,8 @@ class DistributedProver:
             results = []
             for thm, pos in zip_strict(theorems, positions):
                 results.append(self.prover.search(repo, thm, pos))
-                if wall_timeout is not None and time.time() - start_time > wall_timeout:
-                    logger.info(f"Wall timeout reached: {time.time() - start_time:.2f}s > {wall_timeout}s")
+                if global_wall_timeout is not None and time.time() - start_time > global_wall_timeout:
+                    logger.info(f"Global wall timeout reached: {time.time() - start_time:.2f}s > {global_wall_timeout}s")
                     break
             return results
 
@@ -715,8 +729,8 @@ class DistributedProver:
                 )
             for res in gen:
                 results.append(res)
-                if wall_timeout is not None and time.time() - start_time > wall_timeout:
-                    logger.info(f"Wall timeout reached: {time.time() - start_time:.2f}s > {wall_timeout}s")
+                if global_wall_timeout is not None and time.time() - start_time > global_wall_timeout:
+                    logger.info(f"Global wall timeout reached: {time.time() - start_time:.2f}s > {global_wall_timeout}s")
                     break
         except ray.exceptions.RayActorError as ex:
             logger.error(ex)

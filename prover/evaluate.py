@@ -19,6 +19,7 @@ from lean_dojo import LeanGitRepo, Theorem, Pos, is_available_in_cache
 from lean_dojo.data_extraction.trace import get_traced_repo_path
 
 from common import set_logger
+from prover.attempt_summary import AttemptRecord, write_jsonl
 from prover.proof_search import Status, DistributedProver
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -190,7 +191,9 @@ def evaluate(
     commit: Optional[str] = None,
     repair_ckpt_path: Optional[str] = None,
     repair_count: int = 1,
-    wall_timeout: Optional[int] = None,
+    timeout_accounting: str = "wall",
+    global_wall_timeout: Optional[int] = None,
+    summary_jsonl: Optional[str] = None,
 ) -> float:
     set_logger(verbose)
 
@@ -218,9 +221,9 @@ def evaluate(
         algorithm=algorithm,
         repair_ckpt_path=repair_ckpt_path,
         repair_count=repair_count,
-        wall_timeout=wall_timeout,
+        timeout_accounting=timeout_accounting,
     )
-    results = prover.search_unordered(repo, theorems, positions, wall_timeout=wall_timeout)
+    results = prover.search_unordered(repo, theorems, positions, global_wall_timeout=global_wall_timeout)
     # Calculate the result statistics.
     num_proved = num_failed = num_discarded = 0
     for r in results:
@@ -247,6 +250,26 @@ def evaluate(
         pickle_path = f"{exp_id}_results.pickle"
         pickle.dump(results, open(pickle_path, "wb"))
         logger.info(f"Results saved to {pickle_path}")
+
+    if summary_jsonl:
+        records = []
+        for r in results:
+            if r is None:
+                continue
+            records.append(
+                AttemptRecord(
+                    theorem=r.theorem.full_name,
+                    status=r.status.value,
+                    total_time=r.total_time,
+                    repair_time=r.repair_time,
+                    actor_time=r.actor_time,
+                    environment_time=r.environment_time,
+                    num_total_nodes=r.num_total_nodes,
+                    num_searched_nodes=r.num_searched_nodes,
+                )
+            )
+        write_jsonl(summary_jsonl, records)
+        logger.info(f"Attempt summary saved to {summary_jsonl}")
 
     return pass_1
 
@@ -360,10 +383,31 @@ def main() -> None:
         "--verbose", action="store_true", help="Set the logging level to DEBUG."
     )
     parser.add_argument(
+        "--timeout-accounting",
+        choices=["wall", "effective"],
+        default="wall",
+        help=(
+            "How to charge local per-theorem timeout. "
+            "'wall' charges all elapsed time; 'effective' preserves the legacy "
+            "best-first behavior that subtracts repair overhead."
+        ),
+    )
+    parser.add_argument(
+        "--global-wall-timeout",
         "--wall-timeout",
+        dest="global_wall_timeout",
         type=int,
         default=None,
-        help="Maximum number of seconds the entire evaluation can take.",
+        help=(
+            "Maximum number of wall-clock seconds for the entire evaluation run. "
+            "--wall-timeout is kept as a backward-compatible alias."
+        ),
+    )
+    parser.add_argument(
+        "--summary-jsonl",
+        type=str,
+        default=None,
+        help="Optional path for structured per-theorem attempt summaries.",
     )
     parser.add_argument(
         "--log-file",
@@ -417,7 +461,9 @@ def main() -> None:
         args.commit,
         args.repair_ckpt_path,
         args.repair_count,
-        args.wall_timeout,
+        args.timeout_accounting,
+        args.global_wall_timeout,
+        args.summary_jsonl,
     )
 
     logger.info(f"Pass@1: {pass_1}")
