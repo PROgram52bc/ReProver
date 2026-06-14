@@ -127,14 +127,25 @@ python prover/evaluate.py \
     --num-sampled-tactics 5 \
     --num-theorems 50
 
-### Fair Comparison with Wall-Timeout
-To ensure a fair comparison between models (e.g., with vs. without repair) that accounts for all overhead (including LLM generation and repair time), use the `--wall-timeout` option. This sets a hard wall-clock limit per theorem and globally for the entire run.
+### Timeout Accounting for Repair Experiments
+
+Use `--timeout` for the local per-theorem search budget. Use
+`--timeout-accounting wall` to charge all elapsed time, including repair model
+calls, against that local budget. Use `--timeout-accounting effective` only to
+reproduce the legacy best-first behavior, where measured repair overhead is
+subtracted from the local budget.
+
+Use `--global-wall-timeout` for a whole-run wall-clock cutoff across the theorem
+list. The older `--wall-timeout` spelling is accepted as an alias for
+`--global-wall-timeout`.
 
 ```bash
 python prover/evaluate.py \
     --data-path data/leandojo_benchmark_4/random \
     --gen_ckpt_path kaiyuy/leandojo-lean4-tacgen-byt5-small \
-    --wall-timeout 600 \
+    --timeout 600 \
+    --timeout-accounting wall \
+    --global-wall-timeout 100000 \
     --num-theorems 100
 ```
 ```

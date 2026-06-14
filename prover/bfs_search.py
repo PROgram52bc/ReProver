@@ -99,6 +99,7 @@ class BreadthFirstSearchProver:
                 proof=proof,
                 actor_time=self.actor_time,
                 environment_time=self.environment_time,
+                repair_time=0.0,
                 total_time=self.total_time,
                 num_total_nodes=len(self.nodes),
                 num_searched_nodes=self.num_expansions,
