@@ -67,6 +67,12 @@ class RepairGenerator:
     @torch.no_grad()
     def repair(self, state: str, bad_tactic: str, error_msg: str) -> str:
         if self.is_causal:
+            # Truncate string inputs to prevent massive token lengths
+            if len(state) > 4000:
+                state = state[:4000] + "\n... [state truncated to prevent CUDA OOM] ..."
+            if len(error_msg) > 2000:
+                error_msg = error_msg[:2000] + "\n... [error message truncated to prevent CUDA OOM] ..."
+
             system_prompt = (
                 "You are a Lean 4 programmer diagnosing a single failing proof. "
                 "Assume you only see the incorrect proof text, the infoview state"
@@ -99,7 +105,14 @@ Lean error:
 
             inputs = self.tokenizer.apply_chat_template(
                 chat, tokenize=True, add_generation_prompt=True, return_tensors="pt"
-            ).to(self.generator.device)
+            )
+            
+            # Truncate tokens to max_inp_seq_len if still too long
+            if inputs.shape[-1] > self.max_inp_seq_len:
+                logger.warning(f"Truncating repair input tokens from {inputs.shape[-1]} to {self.max_inp_seq_len} to avoid CUDA OOM.")
+                inputs = inputs[:, -self.max_inp_seq_len:]
+                
+            inputs = inputs.to(self.generator.device)
 
             output_ids = self.generator.generate(
                 inputs, max_new_tokens=self.max_oup_seq_len, do_sample=False
@@ -109,6 +122,7 @@ Lean error:
             logger.info(f"Full Repair Model Output:\n{decoded_output}")
             fixed_tactic = self._extract_proof(decoded_output)
             return fixed_tactic if fixed_tactic else bad_tactic
+
 
 
         else:

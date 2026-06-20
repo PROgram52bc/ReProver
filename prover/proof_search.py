@@ -175,6 +175,8 @@ class BestFirstSearchProver:
                 await self._step(priority_queue)
             except DojoTacticTimeoutError:
                 assert time.time() - time_start >= self.timeout
+                # Log a timeout event so check_status can see it
+                logger.info(f"SearchResult(theorem=Theorem(full_name='{self.theorem.full_name}'), status=TIMEOUT)")
 
             self.total_time = time.time() - time_start
             charged = charged_time(
@@ -195,6 +197,8 @@ class BestFirstSearchProver:
                     logger.info("Found a proof!")
                 else:
                     self.root.status = Status.OPEN
+                    # Log a timeout event for the overall search termination
+                    logger.info(f"SearchResult(theorem=Theorem(full_name='{self.theorem.full_name}'), status=TIMEOUT)")
                 logger.info(
                     "Hit the resource limit. "
                     f"Timeout accounting: {self.timeout_accounting} | "
@@ -716,6 +720,8 @@ class DistributedProver:
             results = []
             for thm, pos in zip_strict(theorems, positions):
                 results.append(self.prover.search(repo, thm, pos))
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
                 if global_wall_timeout is not None and time.time() - start_time > global_wall_timeout:
                     logger.info(f"Global wall timeout reached: {time.time() - start_time:.2f}s > {global_wall_timeout}s")
                     break
