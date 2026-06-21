@@ -24,28 +24,24 @@ def write_lakefile_lean() -> None:
     content = """import Lake
 open Lake DSL
 
-package "lean_workbook_reprover" where
-  version := v!"0.1.0"
-  keywords := #["math"]
+package «lean_workbook_reprover» where
   buildType := .release
   leanOptions := #[
     ⟨`pp.unicode.fun, true⟩,
-    ⟨`pp.proofs.withType, false⟩,
-    ⟨`weak.ast, true⟩
+    ⟨`pp.proofs.withType, false⟩
   ]
 
 require mathlib from git
-  "https://github.com/leanprover-community/mathlib4.git" @ "v4.12.0"
+  "https://github.com/leanprover-community/mathlib4.git" @ "v4.11.0"
 
 @[default_target]
 lean_lib «LeanWorkbookGen» where
-  buildType := .debug
 """
     lakefile = PROJECT_DIR / "lakefile.lean"
     lakefile.write_text(content, encoding="utf-8")
 
 def write_lean_toolchain() -> None:
-    content = "leanprover/lean4:v4.12.0\n"
+    content = "leanprover/lean4:v4.11.0\n"
     toolchain = PROJECT_DIR / "lean-toolchain"
     toolchain.write_text(content, encoding="utf-8")
 
@@ -123,6 +119,13 @@ def main() -> None:
     # Write a dummy root file so lake discovery works
     (PROJECT_DIR / "LeanWorkbookGen.lean").touch()
 
+    # Resolve dependencies and fetch prebuilt Mathlib oleans so we don't
+    # compile all of Mathlib from source (which takes hours).
+    print("Resolving dependencies (lake update)...")
+    subprocess.run(["lake", "update"], cwd=PROJECT_DIR, check=True)
+    print("Fetching prebuilt Mathlib cache (lake exe cache get)...")
+    subprocess.run(["lake", "exe", "cache", "get"], cwd=PROJECT_DIR, check=True)
+
     # Rigorous discovery: write and build each file individually
     print("Rigorous build discovery (this may take a few minutes)...")
     successful_files = []
@@ -180,9 +183,9 @@ def main() -> None:
         if f"test.lw_test_{i:04d}" in successful_stems:
             verified_test.append(row)
 
-    with open(DATA_DIR / "lw_val.json", "w") as f:
+    with open(DATA_DIR / "lean_workbook_reprover" / "val.json", "w") as f:
         json.dump(_build_records(verified_val, "val", "val"), f, indent=2)
-    with open(DATA_DIR / "lw_test.json", "w") as f:
+    with open(DATA_DIR / "lean_workbook_reprover" / "test.json", "w") as f:
         json.dump(_build_records(verified_test, "test", "test"), f, indent=2)
 
     print(f"Done. Project at {PROJECT_DIR}")

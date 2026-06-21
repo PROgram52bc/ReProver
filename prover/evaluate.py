@@ -33,8 +33,48 @@ def _elan_toolchain_from_local_repo(repo_path: str) -> Optional[str]:
     return None
 
 
+def _patch_leandojo_check_files(trace_mod) -> None:
+    """Make LeanDojo's ``check_files`` count oleans using the actual olean layout.
+
+    LeanDojo's ``check_files`` globs ``**/build/lib/lean/**/*.olean``, but Lean
+    (<= v4.12) lays oleans out under ``.lake/build/lib/`` with no ``lean/``
+    segment, so the original glob matches nothing and ``len(jsons) <= len(oleans)``
+    fails. We re-implement it against ``build/lib/`` and reassign the module-level
+    name so ``_trace`` picks it up.
+    """
+    from pathlib import Path as _Path
+
+    def check_files(packages_path, no_deps: bool) -> None:
+        cwd = _Path.cwd()
+        packages_path = cwd / packages_path
+        jsons = {
+            p.with_suffix("").with_suffix("")
+            for p in cwd.glob("**/build/ir/**/*.ast.json")
+            if not no_deps or not p.is_relative_to(packages_path)
+        }
+        deps = {
+            p.with_suffix("")
+            for p in cwd.glob("**/build/ir/**/*.dep_paths")
+            if not no_deps or not p.is_relative_to(packages_path)
+        }
+        oleans = {
+            _Path(str(p.with_suffix("")).replace("/build/lib/", "/build/ir/"))
+            for p in cwd.glob("**/build/lib/**/*.olean")
+            if not no_deps or not p.is_relative_to(packages_path)
+        }
+        assert len(jsons) <= len(oleans) and len(deps) <= len(oleans)
+        missing_jsons = {p.with_suffix(".ast.json") for p in oleans - jsons}
+        missing_deps = {p.with_suffix(".dep_paths") for p in oleans - deps}
+        if len(missing_jsons) > 0 or len(missing_deps) > 0:
+            for p in missing_jsons.union(missing_deps):
+                trace_mod.logger.warning(f"Missing {p}")
+
+    trace_mod.check_files = check_files
+    logger.info("Patched LeanDojo check_files for the .lake/build/lib olean layout.")
+
+
 def _patch_leandojo_extract_data_compat() -> None:
-    """Patch LeanDojo ExtractData for Lean parser header API differences."""
+    """Patch LeanDojo ExtractData/trace for Lean parser API and olean-layout differences."""
     try:
         from lean_dojo.data_extraction import trace as trace_mod
     except Exception as ex:
@@ -42,15 +82,37 @@ def _patch_leandojo_extract_data_compat() -> None:
         return
 
     extract_path = Path(inspect.getfile(trace_mod)).resolve().parent / "ExtractData.lean"
-    if not extract_path.exists():
-        return
+    if extract_path.exists():
+        text = extract_path.read_text(encoding="utf-8")
+        original = text
+        # Lean parser header API: getImports expects a TSyntax header.
+        text = text.replace(
+            "IO.FS.writeFile dep_path (← getImports header)",
+            "IO.FS.writeFile dep_path (← getImports ⟨header⟩)",
+        )
+        # Olean layout: Lean (<= v4.12) places oleans under `.lake/build/lib/`
+        # (no `lean/` segment). findLean strips `build/lib/lean/`, which leaves a
+        # nonexistent source path and panics at `assert! path.pathExists`. Strip
+        # `build/lib/` instead so olean -> source resolution works.
+        text = text.replace(
+            '.replace ".lake/build/lib/lean/" ""',
+            '.replace ".lake/build/lib/" ""',
+        ).replace(
+            '|>.replace "build/lib/lean/" ""',
+            '|>.replace "build/lib/" ""',
+        )
+        # HashMap API: Lean v4.11's `Lean.HashMap` uses `.find?` for lookup, but
+        # newer LeanDojo's ExtractData calls `.get?` (the Std.HashMap name), which
+        # doesn't exist on `env.const2ModIdx` (type `HashMap Name ModuleIdx`).
+        text = text.replace(
+            "env.const2ModIdx.get? fullName",
+            "env.const2ModIdx.find? fullName",
+        )
+        if text != original:
+            extract_path.write_text(text, encoding="utf-8")
+            logger.info(f"Patched LeanDojo ExtractData compatibility at {extract_path}")
 
-    text = extract_path.read_text(encoding="utf-8")
-    old = "IO.FS.writeFile dep_path (← getImports header)"
-    new = "IO.FS.writeFile dep_path (← getImports ⟨header⟩)"
-    if old in text:
-        extract_path.write_text(text.replace(old, new), encoding="utf-8")
-        logger.info(f"Patched LeanDojo ExtractData compatibility at {extract_path}")
+    _patch_leandojo_check_files(trace_mod)
 
 
 def _is_preprocessed_theorem_record(record: dict) -> bool:
@@ -158,8 +220,11 @@ def _get_theorems(
             os.environ["ELAN_TOOLCHAIN"] = tc
             logger.info(f"Set ELAN_TOOLCHAIN={tc} for tracing {r}")
         # Ensures ~/.cache/lean_dojo has a trace; traces on first use (can take a while).
+        # build_deps=False downloads prebuilt deps (`lake exe cache get`) and only
+        # AST-extracts this repo's own files (not all of mathlib) -- much faster.
+        # Tradeoff: no dependency premises, so a premise retriever has no corpus.
         try:
-            get_traced_repo_path(r)
+            get_traced_repo_path(r, build_deps=False)
         except subprocess.CalledProcessError:
             logger.warning(f"Tracing {r} failed (lake build exited non-zero). Continuing anyway, as some OLEANs may have been built.")
 

@@ -103,6 +103,7 @@ class BestFirstSearchProver:
         self.actor_time = 0.0
         self.environment_time = 0.0
         self.repair_time = 0.0
+        self.total_time = 0.0
         self.num_expansions = 0
         
         # ID management for plotting
@@ -116,7 +117,10 @@ class BestFirstSearchProver:
             imps = []
 
         try:
-            with Dojo(thm, self.timeout, additional_imports=imps) as (
+            # build_deps=False mirrors evaluate.py's tracing: on a cache miss Dojo
+            # does the cheap trace (lake exe cache get + AST-extract this repo's own
+            # files) instead of compiling all of Mathlib from source for ~45 min.
+            with Dojo(thm, self.timeout, additional_imports=imps, build_deps=False) as (
                 dojo,
                 init_state,
             ):
