@@ -444,11 +444,12 @@ def set_logger(verbose: bool) -> None:
         logger.add(sys.stderr, level="INFO")
 
     log_file = os.getenv("REPROVER_LOG_FILE", "debug_trace.log")
+    log_mode = os.getenv("REPROVER_LOG_MODE", "w")
     logger.add(
             log_file,
             level="DEBUG",        # Capture everything in the file
-            enqueue=True,         # Safe for multiprocessing
-            mode="w",             # 'w' overwrites each run. Use 'a' to append.
+            enqueue=False,         # Write directly without buffering for real-time logs
+            mode=log_mode,        # 'w' overwrites each run, 'a' appends.
             # Add {process} to the format so you know which worker is talking
             format="{time:YYYY-MM-DD HH:mm:ss} | PID:{process} | {level} | {message}"
         )

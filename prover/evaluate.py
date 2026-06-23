@@ -324,13 +324,86 @@ def evaluate(
     timeout_accounting: str = "wall",
     global_wall_timeout: Optional[int] = None,
     summary_jsonl: Optional[str] = None,
+    resume: bool = False,
 ) -> float:
+    args_log_file = os.getenv("REPROVER_LOG_FILE")
+    if resume and args_log_file and os.path.exists(args_log_file):
+        os.environ["REPROVER_LOG_MODE"] = "a"
+
     set_logger(verbose)
     _patch_leandojo_extract_data_compat()
 
     repo, theorems, positions = _get_theorems(
         data_path, split, file_path, full_name, name_filter, num_theorems, dataset, repo_url, commit
     )
+
+    previous_results = []
+    if resume and args_log_file and os.path.exists(args_log_file):
+        logger.info(f"Resuming from existing log: {args_log_file}")
+        import re
+        import ast
+        from prover.proof_search import SearchResult, Status
+        from lean_dojo import Theorem
+
+        sr_pattern = re.compile(
+            r"SearchResult\(theorem=Theorem\(.*?, file_path=PosixPath\('(?P<file_path>[^']+)'\), full_name='(?P<full_name>[^']+)'\), "
+            r"status=<Status\.(?P<status>\w+): '[^']+'\>, proof=(?P<proof>None|\[.*?\]), "
+            r"actor_time=(?P<actor_time>[0-9.eE+-]+), "
+            r"environment_time=(?P<environment_time>[0-9.eE+-]+), "
+            r"repair_time=(?P<repair_time>[0-9.eE+-]+), "
+            r"total_time=(?P<total_time>[0-9.eE+-]+), "
+            r"num_total_nodes=(?P<num_total_nodes>\d+), "
+            r"num_searched_nodes=(?P<num_searched_nodes>\d+)\)"
+        )
+
+        completed_thms = {}
+        with open(args_log_file, "r", encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                m = sr_pattern.search(line)
+                if m:
+                    status_str = m.group("status")
+                    if status_str == "PROVED":
+                        status = Status.PROVED
+                    elif status_str == "FAILED":
+                        status = Status.FAILED
+                    else:
+                        status = Status.OPEN
+
+                    proof_str = m.group("proof")
+                    proof = None
+                    if proof_str != "None":
+                        try:
+                            proof = ast.literal_eval(proof_str)
+                        except Exception:
+                            proof = []
+
+                    thm_name = m.group("full_name")
+                    completed_thms[thm_name] = SearchResult(
+                        theorem=Theorem(repo, Path(m.group("file_path")), thm_name),
+                        status=status,
+                        proof=proof,
+                        actor_time=float(m.group("actor_time")),
+                        environment_time=float(m.group("environment_time")),
+                        repair_time=float(m.group("repair_time")),
+                        total_time=float(m.group("total_time")),
+                        num_total_nodes=int(m.group("num_total_nodes")),
+                        num_searched_nodes=int(m.group("num_searched_nodes"))
+                    )
+
+        logger.info(f"Found {len(completed_thms)} completed theorems in log.")
+
+        new_theorems = []
+        new_positions = []
+        for thm, pos in zip(theorems, positions):
+            if thm.full_name not in completed_thms:
+                new_theorems.append(thm)
+                new_positions.append(pos)
+            else:
+                previous_results.append(completed_thms[thm.full_name])
+
+        logger.info(f"Filtered theorems: {len(theorems)} -> {len(new_theorems)} remaining to run.")
+        theorems = new_theorems
+        positions = new_positions
 
     # Search for proofs using multiple concurrent provers.
     prover = DistributedProver(
@@ -354,7 +427,11 @@ def evaluate(
         repair_count=repair_count,
         timeout_accounting=timeout_accounting,
     )
-    results = prover.search_unordered(repo, theorems, positions, global_wall_timeout=global_wall_timeout)
+    if len(theorems) > 0:
+        new_results = prover.search_unordered(repo, theorems, positions, global_wall_timeout=global_wall_timeout)
+    else:
+        new_results = []
+    results = previous_results + new_results
     # Calculate the result statistics.
     num_proved = num_failed = num_discarded = 0
     for r in results:
@@ -541,6 +618,11 @@ def main() -> None:
         help="Optional path for structured per-theorem attempt summaries.",
     )
     parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume evaluation from the existing log file by skipping already attempted theorems.",
+    )
+    parser.add_argument(
         "--log-file",
         type=str,
         default=None,
@@ -595,6 +677,7 @@ def main() -> None:
         args.timeout_accounting,
         args.global_wall_timeout,
         args.summary_jsonl,
+        args.resume,
     )
 
     logger.info(f"Pass@1: {pass_1}")
