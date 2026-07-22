@@ -1,6 +1,8 @@
 data/
 lightning_logs/
 *.pickle
+*.jsonl
+*.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
