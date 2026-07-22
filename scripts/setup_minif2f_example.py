@@ -12,8 +12,12 @@ DATA_DIR = REPO_ROOT / "data"
 MINIF2F_DIR = DATA_DIR / "minif2f"
 PROJECT_DIR = MINIF2F_DIR / "project"
 GEN_ROOT = PROJECT_DIR / "MiniF2FGen"
-LEAN_TOOLCHAIN = "leanprover/lean4:v4.12.0"
-MATHLIB_COMMIT = "v4.12.0"
+# Pinned to v4.11.0 to match the working lean_workbook setup: LeanDojo 4.20.0's
+# Lean4Repl stdin read loop is broken under Lean v4.12.0 (the REPL initializes
+# and prints the goal, but `IO.getStdin.getLine` returns empty for every tactic,
+# so the process exits 1 on the first tactic). v4.11.0 reads stdin correctly.
+LEAN_TOOLCHAIN = "leanprover/lean4:v4.11.0"
+MATHLIB_COMMIT = "v4.11.0"
 
 
 def _load_raw_splits() -> tuple[list[dict], list[dict]]:
@@ -52,15 +56,24 @@ def _write_project_files() -> None:
 
 
 def _parse_theorem_name(formal_statement: str, fallback: str) -> str:
-    match = re.search(r"(?m)^\\s*theorem\\s+([A-Za-z0-9_'.]+)", formal_statement)
+    # Parse the actual declaration name (the source of truth LeanDojo locates by).
+    # NOTE: must be a single-backslash `\s`/`\b` regex -- `\\s` in a raw string is a
+    # literal backslash and never matches, silently falling back to the id.
+    match = re.search(r"(?m)^\s*(?:theorem|lemma)\s+([A-Za-z0-9_'.]+)", formal_statement)
     return match.group(1) if match else fallback.replace("-", "_")
 
 
-def _write_split(split: str, rows: list[dict]) -> list[dict]:
+def _write_split_files(split: str, rows: list[dict]) -> list[dict]:
+    """Write every candidate `.lean` file for a split and return its metadata.
+
+    Validation is deferred: instead of starting one Lean process per theorem
+    (each re-importing all of Mathlib), we write everything and validate with a
+    single parallel `lake build` in `main`.
+    """
     split_module = "Val" if split == "val" else "Test"
     split_dir = GEN_ROOT / split_module
     split_dir.mkdir(parents=True, exist_ok=True)
-    records: list[dict] = []
+    entries: list[dict] = []
 
     for idx, row in enumerate(rows):
         stem = f"mf2f_{split}_{idx:04d}"
@@ -79,29 +92,54 @@ def _write_split(split: str, rows: list[dict]) -> list[dict]:
             ),
             encoding="utf-8",
         )
-        check = subprocess.run(
-            ["lake", "env", "lean", file_path],
-            cwd=PROJECT_DIR,
-            capture_output=True,
-            text=True,
-        )
-        if check.returncode != 0:
-            file_abs.unlink(missing_ok=True)
-            print(f"Skipping {row['id']} due to build failure.")
-            continue
-
-        records.append(
+        entries.append(
             {
-                "id": row["id"],
+                "row": row,
                 "split": split,
+                "split_module": split_module,
+                "stem": stem,
+                "namespace": namespace,
+                "theorem_name": theorem_name,
                 "file_path": file_path,
-                "full_name": f"{namespace}.{theorem_name}",
-                "start": [5, 1],
-                "informal_stmt": row.get("informal_stmt", ""),
-                "informal_proof": row.get("informal_proof", ""),
+                "file_abs": file_abs,
             }
         )
 
+    return entries
+
+
+def _olean_path(entry: dict) -> Path:
+    # Lean <= v4.12 lays oleans out under `.lake/build/lib/` (no `lean/` segment).
+    return (
+        PROJECT_DIR
+        / ".lake"
+        / "build"
+        / "lib"
+        / "MiniF2FGen"
+        / entry["split_module"]
+        / f"{entry['stem']}.olean"
+    )
+
+
+def _collect_records(entries: list[dict]) -> list[dict]:
+    """Keep entries whose olean was produced by the batched build; drop the rest."""
+    records: list[dict] = []
+    for e in entries:
+        if not _olean_path(e).exists():
+            e["file_abs"].unlink(missing_ok=True)
+            print(f"Skipping {e['row']['id']} due to build failure.")
+            continue
+        records.append(
+            {
+                "id": e["row"]["id"],
+                "split": e["split"],
+                "file_path": e["file_path"],
+                "full_name": f"{e['namespace']}.{e['theorem_name']}",
+                "start": [5, 1],
+                "informal_stmt": e["row"].get("informal_stmt", ""),
+                "informal_proof": e["row"].get("informal_proof", ""),
+            }
+        )
     return records
 
 
@@ -174,9 +212,30 @@ def main() -> None:
     val_rows, test_rows = _load_raw_splits()
     _write_project_files()
     subprocess.run(["lake", "update"], cwd=PROJECT_DIR, check=True)
-    val_records = _write_split("val", val_rows)
-    test_records = _write_split("test", test_rows)
+    # Fetch prebuilt Mathlib oleans so per-file `lake env lean` validation can
+    # resolve `import Mathlib` (otherwise every theorem fails to typecheck and is
+    # skipped, producing empty val/test JSON).
+    subprocess.run(["lake", "exe", "cache", "get"], cwd=PROJECT_DIR, check=True)
+
+    # Write every candidate file, then validate them all with one parallel
+    # `lake build` (independent modules build concurrently; a failing theorem
+    # only fails its own module). The first build's exit code is ignored because
+    # some candidates are expected to fail.
+    val_entries = _write_split_files("val", val_rows)
+    test_entries = _write_split_files("test", test_rows)
     _write_root_module()
+    print("Building all candidate theorems (single parallel lake build)...")
+    subprocess.run(["lake", "build"], cwd=PROJECT_DIR)
+
+    val_records = _collect_records(val_entries)
+    test_records = _collect_records(test_entries)
+
+    # Rewrite the root to import only the theorems that built, then do a final
+    # clean build so the committed project compiles with a zero exit code
+    # (LeanDojo requires `lake build` to succeed when tracing).
+    _write_root_module()
+    subprocess.run(["lake", "build"], cwd=PROJECT_DIR, check=True)
+
     commit = _commit_project()
     MINIF2F_DIR.mkdir(parents=True, exist_ok=True)
     _write_records(val_records, "val", commit)

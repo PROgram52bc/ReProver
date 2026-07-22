@@ -103,19 +103,25 @@ Lean error:
                 {"role": "user", "content": user_prompt},
             ]
 
-            inputs = self.tokenizer.apply_chat_template(
-                chat, tokenize=True, add_generation_prompt=True, return_tensors="pt"
+            encoded = self.tokenizer.apply_chat_template(
+                chat, tokenize=True, add_generation_prompt=True,
+                return_tensors="pt", return_dict=True,
             )
+            inputs = encoded["input_ids"]
+            attention_mask = encoded["attention_mask"]
             
             # Truncate tokens to max_inp_seq_len if still too long
             if inputs.shape[-1] > self.max_inp_seq_len:
                 logger.warning(f"Truncating repair input tokens from {inputs.shape[-1]} to {self.max_inp_seq_len} to avoid CUDA OOM.")
                 inputs = inputs[:, -self.max_inp_seq_len:]
+                attention_mask = attention_mask[:, -self.max_inp_seq_len:]
                 
             inputs = inputs.to(self.generator.device)
+            attention_mask = attention_mask.to(self.generator.device)
 
             output_ids = self.generator.generate(
-                inputs, max_new_tokens=self.max_oup_seq_len, do_sample=False
+                inputs, attention_mask=attention_mask,
+                max_new_tokens=self.max_oup_seq_len, do_sample=False
             )
             new_tokens = output_ids[0][inputs.shape[-1] :]
             decoded_output = self.tokenizer.decode(new_tokens, skip_special_tokens=True)

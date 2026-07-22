@@ -203,12 +203,32 @@ def _get_theorems(
                 continue
             if full_name is not None and t["full_name"] != full_name:
                 continue
+            if name_filter is not None and not hashlib.md5(
+                t["full_name"].encode()
+            ).hexdigest().startswith(name_filter):
+                continue
             theorems.append(Theorem(default_repo, t["file_path"], t["full_name"]))
             if "start" in t:
                 positions.append(Pos(*t["start"]))
             else:
                 positions.append(Pos(1, 1))
         repo = default_repo
+
+        # Deterministically order and cap to num_theorems, mirroring
+        # _get_theorems_from_files so --num-theorems / --name-filter work for
+        # custom datasets (lean_workbook, veribench, ...) too.
+        if len(theorems) > 0:
+            theorems_and_positions = list(zip(theorems, positions))
+            theorems_and_positions.sort(
+                key=lambda x: hashlib.md5(
+                    f"{x[0].file_path}:{x[0].full_name}".encode()
+                ).hexdigest()
+            )
+            theorems, positions = map(list, zip(*theorems_and_positions))
+        if num_theorems is not None:
+            theorems = theorems[:num_theorems]
+            positions = positions[:num_theorems]
+        logger.info(f"{len(theorems)} theorems loaded from {data_path}")
 
     all_repos = {thm.repo for thm in theorems}
     for r in all_repos:
@@ -342,7 +362,7 @@ def evaluate(
         logger.info(f"Resuming from existing log: {args_log_file}")
         import re
         import ast
-        from prover.proof_search import SearchResult, Status
+        from prover.proof_search import SearchResult
         from lean_dojo import Theorem
 
         sr_pattern = re.compile(

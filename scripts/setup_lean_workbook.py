@@ -1,4 +1,5 @@
 import json
+import re
 import subprocess
 import sys
 import os
@@ -52,48 +53,23 @@ def write_leanworkbookgen_root_lean(successful_files: list) -> None:
     root = PROJECT_DIR / "LeanWorkbookGen.lean"
     root.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-def _build_records(rows: list, split_prefix: str, split_label: str) -> list:
-    project_url = str(PROJECT_DIR.resolve())
-    commit = _git_head(PROJECT_DIR)
-    records = []
+# Matches the declaration name in a Lean theorem/lemma statement, e.g.
+# "theorem lean_workbook_plus_317 (x : ...) ..." -> "lean_workbook_plus_317".
+_THEOREM_DECL_RE = re.compile(r"\b(?:theorem|lemma)\s+([^\s({\[:]+)")
 
-    # We only want to include theorems that actually build, because LeanDojo
-    # fails if 'lake build' has a non-zero exit code.
-    print(f"Filtering successful builds for {split_label}...")
-    for i, row in enumerate(rows):
-        pid = row["id"]
-        # The actual name of the theorem is usually the last part of the pid
-        # or we can extract it if we want to be precise, but since we wrapped
-        # it in a namespace LW_split_index, the full name for LeanDojo
-        # should be LW_split_index.<theorem_name>
-        # Looking at InternLM/Lean-Workbook, the formal_statement usually looks like
-        # 'theorem lean_workbook_plus_317 ...'
-        theorem_name = pid.split('.')[-1]
-        namespace = f"LW_{split_prefix}_{i:04d}"
-        full_name = f"{namespace}.{theorem_name}"
-        
-        file_path = f"LeanWorkbookGen/{split_prefix}/lw_{split_prefix}_{i:04d}.lean"
 
-        # Check if the .olean exists (which means it built successfully)
-        # Lake builds into .lake/build/lib/LeanWorkbookGen/...
-        olean_path = PROJECT_DIR / ".lake" / "build" / "lib" / "LeanWorkbookGen" / split_prefix / f"lw_{split_prefix}_{i:04d}.olean"
+def _parse_theorem(content: str):
+    """Return (theorem_name, 1-based line number) parsed from generated file text.
 
-        if not olean_path.exists():
-            print(f"Skipping {pid} due to build failure.")
-            continue
-
-        records.append({
-            "id": pid,
-            "file_path": file_path,
-            "full_name": full_name,
-            "start": [3, 1], # Usually starts on line 3 after imports
-            "split": split_label,
-            "informal_stmt": row.get("natural_language_statement", ""),
-            "informal_proof": row.get("answer", ""),
-            "url": project_url,
-            "commit": commit,
-        })
-    return records
+    The theorem name is taken from the actual ``theorem``/``lemma`` declaration
+    (the source of truth that LeanDojo locates by fully-qualified name), not from
+    the dataset ``id``, which is neither unique nor guaranteed to match.
+    """
+    for idx, line in enumerate(content.splitlines(), start=1):
+        m = _THEOREM_DECL_RE.search(line)
+        if m:
+            return m.group(1), idx
+    return None, None
 
 
 import shutil
@@ -126,10 +102,15 @@ def main() -> None:
     print("Fetching prebuilt Mathlib cache (lake exe cache get)...")
     subprocess.run(["lake", "exe", "cache", "get"], cwd=PROJECT_DIR, check=True)
 
-    # Rigorous discovery: write and build each file individually
+    # Rigorous discovery: write and build each file individually.
+    # Records are collected here, keyed by the SAME original index `i` used for
+    # the filename/namespace, so the JSON's file_path/full_name always match the
+    # files on disk (the previous compaction step desynced these and made
+    # LeanDojo discard theorems whose full_name didn't match the traced file).
     print("Rigorous build discovery (this may take a few minutes)...")
     successful_files = []
-    
+    records = {"val": [], "test": []}
+
     for split_prefix, rows in [("val", val_rows), ("test", test_rows)]:
         split_dir = PROJECT_DIR / "LeanWorkbookGen" / split_prefix
         split_dir.mkdir(parents=True, exist_ok=True)
@@ -149,14 +130,30 @@ def main() -> None:
             # Try building this specific module
             res = subprocess.run(["lake", "build", module], cwd=PROJECT_DIR, capture_output=True)
             
-            if res.returncode == 0:
-                successful_files.append((split_prefix, stem))
-                print(f"Verified {row['id']}")
-            else:
+            if res.returncode != 0:
                 # If build fails, DELETE the file immediately so it doesn't pollute the project
                 if lean_path.exists():
                     lean_path.unlink()
                 print(f"Skipping {row['id']} (build failed)")
+                continue
+
+            theorem_name, theorem_line = _parse_theorem(content)
+            if theorem_name is None:
+                lean_path.unlink()
+                print(f"Skipping {row['id']} (no theorem/lemma declaration found)")
+                continue
+
+            successful_files.append((split_prefix, stem))
+            records[split_prefix].append({
+                "id": row["id"],
+                "file_path": f"LeanWorkbookGen/{split_prefix}/{stem}.lean",
+                "full_name": f"{namespace}.{theorem_name}",
+                "start": [theorem_line, 1],
+                "split": split_prefix,
+                "informal_stmt": row.get("natural_language_statement", ""),
+                "informal_proof": row.get("answer", ""),
+            })
+            print(f"Verified {row['id']} -> {namespace}.{theorem_name}")
 
     # Write root module ONLY containing successful imports
     write_leanworkbookgen_root_lean(successful_files)
@@ -166,27 +163,16 @@ def main() -> None:
     subprocess.run(["lake", "clean"], cwd=PROJECT_DIR, check=True)
     subprocess.run(["lake", "build"], cwd=PROJECT_DIR, check=True)
 
-    _git_head(PROJECT_DIR)
+    commit = _git_head(PROJECT_DIR)
+    project_url = str(PROJECT_DIR.resolve())
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    
-    # Update indices to only include verified successful theorems
-    successful_stems = {f"{s}.{t}" for s, t in successful_files}
-    
-    verified_val = []
-    for i, row in enumerate(val_rows):
-        if f"val.lw_val_{i:04d}" in successful_stems:
-            verified_val.append(row)
-            
-    verified_test = []
-    for i, row in enumerate(test_rows):
-        if f"test.lw_test_{i:04d}" in successful_stems:
-            verified_test.append(row)
-
-    with open(DATA_DIR / "lean_workbook_reprover" / "val.json", "w") as f:
-        json.dump(_build_records(verified_val, "val", "val"), f, indent=2)
-    with open(DATA_DIR / "lean_workbook_reprover" / "test.json", "w") as f:
-        json.dump(_build_records(verified_test, "test", "test"), f, indent=2)
+    for split_prefix in ("val", "test"):
+        for rec in records[split_prefix]:
+            rec["url"] = project_url
+            rec["commit"] = commit
+        with open(DATA_DIR / "lean_workbook_reprover" / f"{split_prefix}.json", "w") as f:
+            json.dump(records[split_prefix], f, indent=2)
 
     print(f"Done. Project at {PROJECT_DIR}")
 
