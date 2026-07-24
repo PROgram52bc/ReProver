@@ -116,6 +116,8 @@ Like MiniF2F, Lean Workbook must be preprocessed into LeanDojo-style theorem rec
 
    The `lean_workbook` dataset resolves its repository URL and commit automatically from the generated project, so `--repo-url` and `--commit` are not required. Use `--split test` to evaluate on the test split instead.
 
+   > **Hitting a cache-download failure, `Pass@1: nan`, or a setup/extraction step that looks hung?** See [`LEAN_WORKBOOK_SETUP_NOTES.md`](LEAN_WORKBOOK_SETUP_NOTES.md) for three environment-specific issues (a stale-cached-curl bug, a LeanDojo olean-path bug, and a filesystem-contention issue) and their fixes, none of which are specific to this dataset's code path but which reliably show up on shared HPC filesystems.
+
 ## 5. Running the Baseline (Reproduction)
 
 To reproduce the Pass@1 metric on LeanDojo (default):

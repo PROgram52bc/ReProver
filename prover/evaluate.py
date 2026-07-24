@@ -108,6 +108,16 @@ def _patch_leandojo_extract_data_compat() -> None:
             "env.const2ModIdx.get? fullName",
             "env.const2ModIdx.find? fullName",
         )
+        # Same olean-layout mismatch as above, but in `shouldProcess`: it builds
+        # the expected olean path under `lib/lean` to decide whether a file has
+        # been built and should be traced. Since real oleans live under `lib`
+        # (no `lean/` segment) for Lean <= v4.12, every path check misses,
+        # `shouldProcess` returns false for every file, and extraction silently
+        # processes nothing.
+        text = text.replace(
+            'Path.toBuildDir "lib/lean" relativePath "olean"',
+            'Path.toBuildDir "lib" relativePath "olean"',
+        )
         if text != original:
             extract_path.write_text(text, encoding="utf-8")
             logger.info(f"Patched LeanDojo ExtractData compatibility at {extract_path}")

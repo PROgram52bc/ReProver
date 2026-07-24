@@ -1,108 +1,110 @@
 #!/bin/bash
+# Reproducible baseline-vs-repair comparison on the Lean Workbook dataset.
+#
+# Runs prover/evaluate.py twice over the *same* theorem set (same split,
+# same --num-theorems, same --num-sampled-tactics, same non-retrieval
+# checkpoint) -- once without a repair model, once with -- and reports
+# Pass@1 for each plus which theorems flipped. See LEAN_WORKBOOK_SETUP_NOTES.md
+# for why NUM_PROCS=4 and env.sh are required on this cluster.
+#
+# Prerequisites (one-time): data/lean_workbook_reprover/<SPLIT>.json must
+# exist -- run `python scripts/setup_lean_workbook.py` first if it doesn't.
+#
+# Usage: ./scripts/compare_repair_lean_workbook.sh
+# Override any of the variables below via env, e.g.:
+#   NUM_THEOREMS=100 REPAIR_COUNT=3 ./scripts/compare_repair_lean_workbook.sh
 
-# Configuration
-DATA_PATH="data/lean_workbook_reprover"
-DATASET="lean_workbook"
-SPLIT="val"
-GEN_CKPT="kaiyuy/leandojo-lean4-retriever-tacgen-byt5-small"
-RET_CKPT="kaiyuy/leandojo-lean4-retriever-byt5-small"
-INDEXED_CORPUS="data/leandojo_benchmark_4/indexed_corpus.pkl"
-GLOBAL_WALL_TIMEOUT=100000  # Fair cutoff time for all runs in an experiment
-LOCAL_TIMEOUT=600
-UNBOUNDED_RUNTIME=true # Set to true to run until exhaustion (ignores GLOBAL_WALL_TIMEOUT)
+set -uo pipefail
+cd "$(dirname "$0")/.."
 
-# Construct timeout argument
-GLOBAL_TIMEOUT_ARG="--global-wall-timeout $GLOBAL_WALL_TIMEOUT"
-if [ "$UNBOUNDED_RUNTIME" = true ]; then
-    GLOBAL_TIMEOUT_ARG=""
-    echo "Running in UNBOUNDED mode (no wall timeout)"
+if [ -f env.sh ]; then
+    source env.sh
+else
+    echo "WARNING: env.sh not found -- GITHUB_ACCESS_TOKEN/HF_ACCESS_TOKEN may be missing." >&2
 fi
 
-# Experiment sets (modify these arrays to scale your experiments)
-THEOREMS_LIST=(90)
-TACTICS_LIST=(3) # (3 5 8)
-REPAIR_COUNTS_LIST=(3) # (1 2 3) # Number of recursive repair attempts to try
+# See LEAN_WORKBOOK_SETUP_NOTES.md #3: default NUM_PROCS (= cpu_count(), often
+# 24+) causes a thundering herd against a shared/networked scratch filesystem
+# during LeanDojo's extraction step. Override with NUM_PROCS=<n> if your
+# filesystem can sustain more concurrent readers.
+export NUM_PROCS="${NUM_PROCS:-4}"
 
-mkdir -p logs/experiments
+DATA_PATH="${DATA_PATH:-data/lean_workbook_reprover}"
+SPLIT="${SPLIT:-val}"
+GEN_CKPT="${GEN_CKPT:-kaiyuy/leandojo-lean4-tacgen-byt5-small}"
+REPAIR_CKPT="${REPAIR_CKPT:-uw-math-ai/gAPRIL-wo-exp}"
+NUM_TACTICS="${NUM_TACTICS:-5}"
+NUM_THEOREMS="${NUM_THEOREMS:-50}"
+REPAIR_COUNT="${REPAIR_COUNT:-2}"
+TIMEOUT="${TIMEOUT:-600}"
 
-for thm in "${THEOREMS_LIST[@]}"; do
-    for tac in "${TACTICS_LIST[@]}"; do
-        
-        EXP_BASE_ID="thm${thm}_tac${tac}"
-        LOGS_TO_COMPARE=()
-        SUMMARIES_TO_ANALYZE=()
-        
-        DISPLAY_TIMEOUT="${GLOBAL_WALL_TIMEOUT}s"
-        if [ "$UNBOUNDED_RUNTIME" = true ]; then
-            DISPLAY_TIMEOUT="Unbounded"
-        fi
+if [ ! -f "$DATA_PATH/$SPLIT.json" ]; then
+    echo "ERROR: $DATA_PATH/$SPLIT.json not found." >&2
+    echo "Run 'python scripts/setup_lean_workbook.py' first (see README Lean Workbook section)." >&2
+    exit 1
+fi
 
-        echo "========================================================="
-        echo "EXPERIMENT: Theorems=$thm | Tactics=$tac | Timeout=${DISPLAY_TIMEOUT}"
-        echo "========================================================="
+OUT_DIR="logs/experiments/lean_workbook_repair_compare"
+mkdir -p "$OUT_DIR"
 
-        # 1. Run WITHOUT repair model (Baseline)
-        LOG_NO_REPAIR="logs/experiments/${EXP_BASE_ID}_norepair.log"
-        SUMMARY_NO_REPAIR="logs/experiments/${EXP_BASE_ID}_norepair.jsonl"
-        SUMMARIES_TO_ANALYZE+=("$SUMMARY_NO_REPAIR")
-        echo "Running [BASELINE - NO REPAIR]..."
-        # python -m prover.evaluate \
-        #     --data-path "$DATA_PATH" \
-        #     --dataset "$DATASET" \
-        #     --split "$SPLIT" \
-        #     --gen_ckpt_path "$GEN_CKPT" \
-        #     --ret_ckpt_path "$RET_CKPT" \
-        #     --num-sampled-tactics "$tac" \
-        #     --num-theorems "$thm" \
-        #     --timeout "$LOCAL_TIMEOUT" \
-        #     --timeout-accounting effective \
-        #     $GLOBAL_TIMEOUT_ARG \
-        #     --summary-jsonl "$SUMMARY_NO_REPAIR" \
-        #     --log-file "$LOG_NO_REPAIR" \
-        #     --exp-id "${EXP_BASE_ID}_norepair" \
-        #     --save-results
-        
-        # LOGS_TO_COMPARE+=("$LOG_NO_REPAIR")
+EXP_ID="lw_${SPLIT}_thm${NUM_THEOREMS}_tac${NUM_TACTICS}"
+LOG_BASELINE="$OUT_DIR/${EXP_ID}_baseline.log"
+SUMMARY_BASELINE="$OUT_DIR/${EXP_ID}_baseline.jsonl"
+LOG_REPAIR="$OUT_DIR/${EXP_ID}_repair_c${REPAIR_COUNT}.log"
+SUMMARY_REPAIR="$OUT_DIR/${EXP_ID}_repair_c${REPAIR_COUNT}.jsonl"
 
-        # 2. Run WITH repair model for each count in the list
-        for rep in "${REPAIR_COUNTS_LIST[@]}"; do
-            LOG_REPAIR="logs/experiments/${EXP_BASE_ID}_repair_c${rep}.log"
-            SUMMARY_REPAIR="logs/experiments/${EXP_BASE_ID}_repair_c${rep}.jsonl"
-            SUMMARIES_TO_ANALYZE+=("$SUMMARY_REPAIR")
-            echo "Running [REPAIR - COUNT $rep]..."
-            python -m prover.evaluate \
-                --data-path "$DATA_PATH" \
-                --dataset "$DATASET" \
-                --split "$SPLIT" \
-                --gen_ckpt_path "$GEN_CKPT" \
-                --ret_ckpt_path "$RET_CKPT" \
-                --num-sampled-tactics "$tac" \
-                --num-theorems "$thm" \
-                --repair-ckpt-path "uw-math-ai/gAPRIL-wo-exp" \
-                --repair-count "$rep" \
-                --timeout "$LOCAL_TIMEOUT" \
-                --timeout-accounting effective \
-                $GLOBAL_TIMEOUT_ARG \
-                --summary-jsonl "$SUMMARY_REPAIR" \
-                --log-file "$LOG_REPAIR" \
-                --exp-id "${EXP_BASE_ID}_repair_c${rep}" \
-                --save-results
-            
-            LOGS_TO_COMPARE+=("$LOG_REPAIR")
-        done
+echo "========================================================="
+echo "Lean Workbook baseline-vs-repair comparison"
+echo "  data=$DATA_PATH split=$SPLIT theorems=$NUM_THEOREMS tactics=$NUM_TACTICS"
+echo "  repair_ckpt=$REPAIR_CKPT repair_count=$REPAIR_COUNT NUM_PROCS=$NUM_PROCS"
+echo "========================================================="
 
-        # 3. Compare all variants for this (thm, tac) configuration
-        echo "Generating multi-way comparison for configuration: $EXP_BASE_ID"
-        python compare_outcomes.py "${LOGS_TO_COMPARE[@]}" --output "logs/experiments/${EXP_BASE_ID}_comparison.csv"
-        
-        python -m scripts.analyze_timeout_variants \
-            "${SUMMARIES_TO_ANALYZE[@]}" \
-            --local-timeout "$LOCAL_TIMEOUT" \
-            --global-budget "$GLOBAL_WALL_TIMEOUT" \
-            --output "logs/experiments/${EXP_BASE_ID}_timeout_variants.csv"
-        
-        echo -e "\n\n"
-    done
-done
+echo
+echo "--- [1/2] BASELINE (no repair) ---"
+python prover/evaluate.py \
+    --data-path "$DATA_PATH" \
+    --dataset lean_workbook \
+    --split "$SPLIT" \
+    --gen_ckpt_path "$GEN_CKPT" \
+    --num-sampled-tactics "$NUM_TACTICS" \
+    --num-theorems "$NUM_THEOREMS" \
+    --timeout "$TIMEOUT" \
+    --summary-jsonl "$SUMMARY_BASELINE" \
+    --log-file "$LOG_BASELINE" \
+    --exp-id "${EXP_ID}_baseline"
+BASELINE_STATUS=$?
 
-echo "All experiments completed. Results are in logs/experiments/"
+echo
+echo "--- [2/2] REPAIR (repair-count=$REPAIR_COUNT) ---"
+python prover/evaluate.py \
+    --data-path "$DATA_PATH" \
+    --dataset lean_workbook \
+    --split "$SPLIT" \
+    --gen_ckpt_path "$GEN_CKPT" \
+    --repair-ckpt-path "$REPAIR_CKPT" \
+    --repair-count "$REPAIR_COUNT" \
+    --num-sampled-tactics "$NUM_TACTICS" \
+    --num-theorems "$NUM_THEOREMS" \
+    --timeout "$TIMEOUT" \
+    --summary-jsonl "$SUMMARY_REPAIR" \
+    --log-file "$LOG_REPAIR" \
+    --exp-id "${EXP_ID}_repair_c${REPAIR_COUNT}"
+REPAIR_STATUS=$?
+
+if [ $BASELINE_STATUS -ne 0 ]; then
+    echo "WARNING: baseline run exited with status $BASELINE_STATUS -- see $LOG_BASELINE" >&2
+fi
+if [ $REPAIR_STATUS -ne 0 ]; then
+    echo "WARNING: repair run exited with status $REPAIR_STATUS -- see $LOG_REPAIR" >&2
+fi
+
+echo
+echo "========================================================="
+echo "COMPARISON (from $SUMMARY_BASELINE vs $SUMMARY_REPAIR)"
+echo "========================================================="
+python scripts/compare_repair_results.py "$SUMMARY_BASELINE" "$SUMMARY_REPAIR"
+
+echo
+echo "Full logs:"
+echo "  baseline: $LOG_BASELINE"
+echo "  repair:   $LOG_REPAIR"
