@@ -1,0 +1,20 @@
+# Python 3.11.14 dependencies for the prover and the in-search repair
+# integration ("Repair, Not Just Resample"). The experiments are deterministic
+# (beam-search generation + greedy repair), so a matching environment
+# reproduces every reported number exactly.
+#
+# Host used for the paper's experiments: single NVIDIA Tesla V100-PCIE-32GB
+# (CUDA 12.6, driver 575.57.08), Intel Xeon Gold 6126 (24 cores), 754 GB RAM,
+# Rocky Linux 9.6.
+torch==2.9.1
+transformers==4.56.0
+pytorch-lightning==2.6.1
+torchmetrics==1.8.2
+vllm==0.15.1
+ray==2.53.0
+deepspeed==0.18.5
+loguru==0.7.3
+networkx==3.6.1
+numpy==2.2.6
+tqdm
+lean-dojo   # installed from source; see the repository README for setup

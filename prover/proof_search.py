@@ -385,6 +385,13 @@ class BestFirstSearchProver:
         return edge, finished
 
     def _run_repair(self, original_node, error_node, bad_tactic, error_msg, logprob, priority_queue, depth):
+        # Bounded in-search repair operator (paper: "Repair, Not Just Resample",
+        # Algorithm 1 and Sec. "The Repair Prompt"). When a generator tactic is
+        # rejected, query the repair model with (state, failed tactic, Lean
+        # error) and run its returned tactic from the SAME (original) node, so
+        # repair is a per-node step inside search, not whole-proof post-hoc
+        # repair. `depth` (0-indexed) bounds this to R = self.repair_count
+        # recursive attempts per failed tactic.
         if depth >= self.repair_count:
             return
             
