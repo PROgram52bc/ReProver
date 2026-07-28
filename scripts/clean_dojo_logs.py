@@ -13,12 +13,12 @@ cleaned up before the data can be trusted:
    only the LAST recorded SearchResult for each theorem, since it is the
    authoritative final attempt.
 
-Usage:
-    python scripts/clean_dojo_logs.py --data-dir data/dojo_full \
-        --out data/dojo_full_clean.json
+Usage (run with cwd = the paper repo root, i.e. one level above `code/`):
+    python code/scripts/clean_dojo_logs.py --data-dir data/leandojo_sweep/raw_logs \
+        --out data/leandojo_sweep/dojo_full_clean.json
 
-    python scripts/clean_dojo_logs.py --data-dir data/dojo_full \
-        --out data/dojo_full_clean.json --table
+    python code/scripts/clean_dojo_logs.py --data-dir data/leandojo_sweep/raw_logs \
+        --out data/leandojo_sweep/dojo_full_clean.json --table
 """
 import re
 import json
@@ -151,8 +151,8 @@ def build_table(all_results):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data-dir", default="data/dojo_full")
-    ap.add_argument("--out", default="data/dojo_full_clean.json")
+    ap.add_argument("--data-dir", default="data/leandojo_sweep/raw_logs")
+    ap.add_argument("--out", default="data/leandojo_sweep/dojo_full_clean.json")
     ap.add_argument("--min-worker-lines", type=int, default=200,
                      help="PIDs with fewer log lines than this are treated as corruption noise")
     ap.add_argument("--table", action="store_true", help="print the K x R summary table")
